@@ -33,6 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Bot-ville runtime memory data
+.bot-ville/
+
 # Misc
 .DS_Store
 *.pem
