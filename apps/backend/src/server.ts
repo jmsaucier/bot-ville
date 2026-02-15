@@ -15,6 +15,7 @@ import { registerPublicRoutes } from "./routes/public.js";
 import { registerWsRoute } from "./routes/ws.js";
 import { registerDemoRoute } from "./routes/demo.js";
 import { registerAgentRoutes } from "./routes/agents.js";
+import { registerProjectRoutes, type ProjectContext } from "./routes/project.js";
 
 const PORT = Number(process.env["PORT"] ?? 4000);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
@@ -34,6 +35,12 @@ async function main() {
   const agentRegistry = new AgentRegistry();
   const agentSpawner = new AgentSpawner(agentRegistry, eventBus);
 
+  // Initialize project context (in-memory, set by desktop app)
+  const projectContext: ProjectContext = {
+    projectDirectory: null,
+    projectName: null,
+  };
+
   // Create Fastify instance
   const app = Fastify({
     logger: {
@@ -51,6 +58,7 @@ async function main() {
   registerWsRoute(app, eventBus);
   registerDemoRoute(app, engine);
   registerAgentRoutes(app, prisma, agentSpawner, agentRegistry);
+  registerProjectRoutes(app, projectContext, eventBus, agentSpawner);
 
   // Graceful shutdown
   const shutdown = async () => {

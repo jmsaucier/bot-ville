@@ -15,6 +15,11 @@ async function publicFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface ProjectContext {
+  projectDirectory: string | null;
+  projectName: string | null;
+}
+
 export const publicApi = {
   listWorkOrders: () => publicFetch("/work-orders"),
   getSnapshot: (id: string) => publicFetch(`/work-orders/${id}`),
@@ -30,4 +35,5 @@ export const publicApi = {
     const qs = status ? `?status=${status}` : "";
     return publicFetch(`/agents${qs}`);
   },
+  getProject: () => publicFetch<ProjectContext>("/project"),
 };

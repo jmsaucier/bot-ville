@@ -79,6 +79,15 @@ export const api = {
     }),
   listAgentPresets: () => apiFetch("/api/agents/presets"),
 
+  // Project
+  setProject: (projectDirectory: string) =>
+    apiFetch<{ projectDirectory: string; projectName: string }>("/api/project", {
+      method: "POST",
+      body: JSON.stringify({ projectDirectory }),
+    }),
+  getProject: () =>
+    apiFetch<{ projectDirectory: string | null; projectName: string | null }>("/api/project"),
+
   // Read
   listWorkOrders: () => apiFetch("/api/work-orders"),
   getSnapshot: (id: string) => apiFetch(`/api/work-orders/${id}`),

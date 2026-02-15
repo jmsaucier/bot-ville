@@ -27,6 +27,7 @@ export const EventTypeEnum = z.enum([
   "agent.completed",
   "agent.failed",
   "agent.killed",
+  "project.changed",
 ]);
 
 export type EventType = z.infer<typeof EventTypeEnum>;
@@ -167,6 +168,13 @@ export const AgentKilledPayload = z.object({
   reason: z.string().optional(),
 });
 
+// ─── Project Event Payloads ─────────────────────────────────────────────────
+
+export const ProjectChangedPayload = z.object({
+  projectDirectory: z.string(),
+  projectName: z.string(),
+});
+
 // ─── Discriminated Event Union ───────────────────────────────────────────────
 
 export const FarmEventSchema = z.discriminatedUnion("type", [
@@ -253,6 +261,10 @@ export const FarmEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("agent.killed"),
     payload: AgentKilledPayload,
+  }),
+  z.object({
+    type: z.literal("project.changed"),
+    payload: ProjectChangedPayload,
   }),
 ]);
 

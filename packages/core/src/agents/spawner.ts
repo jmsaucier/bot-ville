@@ -46,11 +46,22 @@ interface TrackedProcess {
  */
 export class AgentSpawner {
   private sessions = new Map<string, TrackedProcess>();
+  private _defaultWorkingDirectory: string | undefined;
 
   constructor(
     private readonly registry: AgentRegistry,
     private readonly eventBus: EventBus
   ) {}
+
+  /** Set the default working directory for new agent sessions. */
+  setDefaultWorkingDirectory(dir: string): void {
+    this._defaultWorkingDirectory = dir;
+  }
+
+  /** Get the current default working directory, if set. */
+  getDefaultWorkingDirectory(): string | undefined {
+    return this._defaultWorkingDirectory;
+  }
 
   /**
    * Spawn a new agent process.
@@ -65,7 +76,7 @@ export class AgentSpawner {
     const preset = this.registry.getPresetOrThrow(presetId);
 
     const sessionId = uuid();
-    const cwd = options.workingDirectory ?? process.cwd();
+    const cwd = options.workingDirectory ?? this._defaultWorkingDirectory ?? process.cwd();
     const apiUrl = options.apiUrl ?? "http://localhost:4000";
 
     const session: AgentSession = {
