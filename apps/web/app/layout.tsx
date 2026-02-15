@@ -26,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </h1>
             <nav style={{ display: "flex", gap: "1rem", fontSize: "0.875rem" }}>
               <a href="/">Dashboard</a>
+              <a href="/agents">Agents</a>
               <a href="/events">Events</a>
             </nav>
           </div>

@@ -134,7 +134,7 @@ export function registerApiRoutes(
     }
   );
 
-  app.get<{ Params: { id: string } }>(
+  app.get<{ Params: { id: string }; Querystring: Record<string, unknown> }>(
     "/api/work-orders/:id/events",
     async (request, reply) => {
       const params = EventQueryParams.parse({

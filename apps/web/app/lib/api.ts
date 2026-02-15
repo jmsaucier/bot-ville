@@ -26,4 +26,8 @@ export const publicApi = {
     return publicFetch(`/events${qs}`);
   },
   getHealth: () => publicFetch("/health"),
+  listAgents: (status?: string) => {
+    const qs = status ? `?status=${status}` : "";
+    return publicFetch(`/agents${qs}`);
+  },
 };

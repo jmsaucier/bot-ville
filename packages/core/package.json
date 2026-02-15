@@ -9,7 +9,8 @@
     "./persistence": "./src/persistence.ts",
     "./policy-engine": "./src/policy-engine.ts",
     "./roles": "./src/roles/index.ts",
-    "./merge": "./src/merge/merge-engine.ts"
+    "./merge": "./src/merge/merge-engine.ts",
+    "./agents": "./src/agents/index.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

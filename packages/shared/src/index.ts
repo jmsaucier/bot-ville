@@ -56,10 +56,48 @@ export {
   HeelWatchdogAlertPayload,
   DecisionRecordedPayload,
   SystemErrorPayload,
+  AgentSpawnedPayload,
+  AgentConnectedPayload,
+  AgentHeartbeatPayload,
+  AgentCompletedPayload,
+  AgentFailedPayload,
+  AgentKilledPayload,
   type EventType,
   type FarmEvent,
   type WireEvent,
 } from "./events.js";
+
+// Agents
+export {
+  PromptModeEnum,
+  ResumeStyleEnum,
+  AgentPresetSchema,
+  AgentSessionStatusEnum,
+  AgentSessionSchema,
+  AgentConfigSchema,
+  AgentMailSchema,
+  SpawnAgentRequest,
+  AgentHeartbeatRequest,
+  AgentDoneRequest,
+  SendMailRequest,
+  AgentSessionResponse,
+  AgentSessionListResponse,
+  AgentMailListResponse,
+  type PromptMode,
+  type ResumeStyle,
+  type AgentPreset,
+  type AgentSessionStatus,
+  type AgentSession,
+  type AgentConfig,
+  type AgentMail,
+  type SpawnAgentRequestType,
+  type AgentHeartbeatRequestType,
+  type AgentDoneRequestType,
+  type SendMailRequestType,
+  type AgentSessionResponseType,
+  type AgentSessionListResponseType,
+  type AgentMailListResponseType,
+} from "./agents.js";
 
 // API
 export {

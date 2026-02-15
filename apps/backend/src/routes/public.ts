@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
+import type { PrismaClient } from "@prisma/client";
 import type { FarmEngine } from "@repo/core";
 import type { PrismaAdapter } from "../persistence/prisma-adapter.js";
 import { EventQueryParams } from "@repo/shared";
+import type { AgentSession, AgentSessionStatus, RoleId } from "@repo/shared";
 
 /**
  * Read-only routes under /public/*
@@ -11,7 +13,8 @@ import { EventQueryParams } from "@repo/shared";
 export function registerPublicRoutes(
   app: FastifyInstance,
   engine: FarmEngine,
-  adapter: PrismaAdapter
+  adapter: PrismaAdapter,
+  prisma?: PrismaClient
 ): void {
   // Block any non-GET methods on /public/*
   app.addHook("onRequest", async (request, reply) => {
@@ -57,7 +60,7 @@ export function registerPublicRoutes(
     }
   );
 
-  app.get<{ Params: { id: string } }>(
+  app.get<{ Params: { id: string }; Querystring: Record<string, unknown> }>(
     "/public/work-orders/:id/events",
     async (request, reply) => {
       const params = EventQueryParams.parse({
@@ -91,4 +94,36 @@ export function registerPublicRoutes(
       lastTick: health.lastTick,
     });
   });
+
+  // ── Agent Sessions (read-only) ──
+
+  if (prisma) {
+    app.get("/public/agents", async (request, reply) => {
+      const query = request.query as { status?: string };
+      const where: Record<string, unknown> = {};
+      if (query.status) where.status = query.status;
+
+      const rows = await prisma.agentSession.findMany({
+        where,
+        orderBy: { spawnedAt: "desc" },
+      });
+
+      const sessions: AgentSession[] = rows.map((row) => ({
+        id: row.id,
+        agentPresetId: row.agentPresetId,
+        roleId: row.roleId as RoleId,
+        workOrderId: row.workOrderId,
+        taskId: row.taskId,
+        status: row.status as AgentSessionStatus,
+        pid: row.pid,
+        workingDirectory: row.workingDirectory,
+        agentSessionId: row.agentSessionId,
+        lastHeartbeat: row.lastHeartbeat?.toISOString() ?? null,
+        spawnedAt: row.spawnedAt.toISOString(),
+        completedAt: row.completedAt?.toISOString() ?? null,
+      }));
+
+      return reply.send(sessions);
+    });
+  }
 }

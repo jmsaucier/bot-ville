@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { RoleIdEnum } from "./roles.js";
 import { StatusEnum } from "./statuses.js";
+import { AgentSessionStatusEnum } from "./agents.js";
 
 // ─── Event Type Enum ─────────────────────────────────────────────────────────
 
@@ -20,6 +21,12 @@ export const EventTypeEnum = z.enum([
   "heel.watchdog_alert",
   "decision.recorded",
   "system.error",
+  "agent.spawned",
+  "agent.connected",
+  "agent.heartbeat",
+  "agent.completed",
+  "agent.failed",
+  "agent.killed",
 ]);
 
 export type EventType = z.infer<typeof EventTypeEnum>;
@@ -116,6 +123,50 @@ export const SystemErrorPayload = z.object({
   context: z.record(z.unknown()).optional(),
 });
 
+// ─── Agent Event Payloads ───────────────────────────────────────────────────
+
+export const AgentSpawnedPayload = z.object({
+  sessionId: z.string().uuid(),
+  agentPresetId: z.string(),
+  roleId: RoleIdEnum,
+  workOrderId: z.string().uuid().nullable(),
+  taskId: z.string().uuid().nullable(),
+  pid: z.number().int().nullable(),
+});
+
+export const AgentConnectedPayload = z.object({
+  sessionId: z.string().uuid(),
+  agentPresetId: z.string(),
+  roleId: RoleIdEnum,
+});
+
+export const AgentHeartbeatPayload = z.object({
+  sessionId: z.string().uuid(),
+  message: z.string().optional(),
+});
+
+export const AgentCompletedPayload = z.object({
+  sessionId: z.string().uuid(),
+  agentPresetId: z.string(),
+  roleId: RoleIdEnum,
+  message: z.string().optional(),
+});
+
+export const AgentFailedPayload = z.object({
+  sessionId: z.string().uuid(),
+  agentPresetId: z.string(),
+  roleId: RoleIdEnum,
+  error: z.string(),
+  exitCode: z.number().int().nullable(),
+});
+
+export const AgentKilledPayload = z.object({
+  sessionId: z.string().uuid(),
+  agentPresetId: z.string(),
+  roleId: RoleIdEnum,
+  reason: z.string().optional(),
+});
+
 // ─── Discriminated Event Union ───────────────────────────────────────────────
 
 export const FarmEventSchema = z.discriminatedUnion("type", [
@@ -178,6 +229,30 @@ export const FarmEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("system.error"),
     payload: SystemErrorPayload,
+  }),
+  z.object({
+    type: z.literal("agent.spawned"),
+    payload: AgentSpawnedPayload,
+  }),
+  z.object({
+    type: z.literal("agent.connected"),
+    payload: AgentConnectedPayload,
+  }),
+  z.object({
+    type: z.literal("agent.heartbeat"),
+    payload: AgentHeartbeatPayload,
+  }),
+  z.object({
+    type: z.literal("agent.completed"),
+    payload: AgentCompletedPayload,
+  }),
+  z.object({
+    type: z.literal("agent.failed"),
+    payload: AgentFailedPayload,
+  }),
+  z.object({
+    type: z.literal("agent.killed"),
+    payload: AgentKilledPayload,
   }),
 ]);
 

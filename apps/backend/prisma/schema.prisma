@@ -88,3 +88,41 @@ model EventLog {
   @@index([action])
   @@index([timestamp])
 }
+
+model AgentSession {
+  id              String   @id @default(uuid())
+  agentPresetId   String
+  roleId          String
+  workOrderId     String?
+  taskId          String?
+  status          String   @default("spawning")
+  pid             Int?
+  workingDirectory String?
+  agentSessionId  String?
+  lastHeartbeat   DateTime?
+  spawnedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  mail AgentMail[] @relation("recipient")
+  sentMail AgentMail[] @relation("sender")
+
+  @@index([status])
+  @@index([roleId])
+  @@index([workOrderId])
+}
+
+model AgentMail {
+  id        String   @id @default(uuid())
+  fromId    String
+  toId      String
+  subject   String
+  body      String   @default("")
+  sentAt    DateTime @default(now())
+  readAt    DateTime?
+
+  sender    AgentSession @relation("sender", fields: [fromId], references: [id])
+  recipient AgentSession @relation("recipient", fields: [toId], references: [id])
+
+  @@index([toId])
+  @@index([fromId])
+}

@@ -15,17 +15,18 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@repo/core": "workspace:*",
-    "@repo/shared": "workspace:*",
     "@fastify/cors": "^11.0.1",
     "@fastify/websocket": "^11.0.2",
     "@prisma/client": "^6.9.0",
+    "@repo/core": "workspace:*",
+    "@repo/shared": "workspace:*",
     "fastify": "^5.3.3"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.39.1",
     "prisma": "^6.9.0",
     "tsx": "^4.19.4",

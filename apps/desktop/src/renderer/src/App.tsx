@@ -5,6 +5,7 @@ import { WorkOrderDetail } from "./pages/WorkOrderDetail.js";
 import { EventTimeline } from "./pages/EventTimeline.js";
 import { RolePanels } from "./pages/RolePanels.js";
 import { MergeCenter } from "./pages/MergeCenter.js";
+import { AgentsPanel } from "./pages/AgentsPanel.js";
 
 export function App() {
   const ws = useWebSocket();
@@ -43,6 +44,7 @@ export function App() {
         </div>
 
         <NavItem to="/" label="Dashboard" />
+        <NavItem to="/agents" label="Agents" />
         <NavItem to="/events" label="Event Timeline" />
         <NavItem to="/roles" label="Role Panels" />
         <NavItem to="/merge" label="Merge Center" />
@@ -70,6 +72,7 @@ export function App() {
           />
           <Route path="/roles" element={<RolePanels />} />
           <Route path="/merge" element={<MergeCenter />} />
+          <Route path="/agents" element={<AgentsPanel />} />
         </Routes>
       </main>
     </div>

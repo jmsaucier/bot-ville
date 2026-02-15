@@ -2,12 +2,19 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { PrismaClient } from "@prisma/client";
-import { FarmEngine, EventBus, registerAllRoles } from "@repo/core";
+import {
+  FarmEngine,
+  EventBus,
+  registerAllRoles,
+  AgentRegistry,
+  AgentSpawner,
+} from "@repo/core";
 import { PrismaAdapter } from "./persistence/prisma-adapter.js";
 import { registerApiRoutes } from "./routes/api.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerWsRoute } from "./routes/ws.js";
 import { registerDemoRoute } from "./routes/demo.js";
+import { registerAgentRoutes } from "./routes/agents.js";
 
 const PORT = Number(process.env["PORT"] ?? 4000);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
@@ -23,6 +30,10 @@ async function main() {
   const adapter = new PrismaAdapter(prisma);
   const engine = new FarmEngine(adapter, eventBus);
 
+  // Initialize agent orchestration
+  const agentRegistry = new AgentRegistry();
+  const agentSpawner = new AgentSpawner(agentRegistry, eventBus);
+
   // Create Fastify instance
   const app = Fastify({
     logger: {
@@ -36,13 +47,15 @@ async function main() {
 
   // Register routes
   registerApiRoutes(app, engine, adapter);
-  registerPublicRoutes(app, engine, adapter);
+  registerPublicRoutes(app, engine, adapter, prisma);
   registerWsRoute(app, eventBus);
   registerDemoRoute(app, engine);
+  registerAgentRoutes(app, prisma, agentSpawner, agentRegistry);
 
   // Graceful shutdown
   const shutdown = async () => {
     app.log.info("Shutting down...");
+    agentSpawner.killAll("Server shutdown");
     await app.close();
     await prisma.$disconnect();
     process.exit(0);

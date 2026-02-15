@@ -1,5 +1,5 @@
-import { publicApi } from "../../lib/api.js";
-import { StatusBadge } from "../../components/StatusBadge.js";
+import { publicApi } from "../../lib/api";
+import { StatusBadge } from "../../components/StatusBadge";
 
 interface Task {
   id: string;

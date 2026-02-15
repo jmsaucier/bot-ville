@@ -62,6 +62,23 @@ export const api = {
 
   runDemo: () => apiFetch("/api/demo/run", { method: "POST" }),
 
+  // Agents
+  listAgents: (status?: string) => {
+    const qs = status ? `?status=${status}` : "";
+    return apiFetch(`/api/agents${qs}`);
+  },
+  getAgentSession: (id: string) => apiFetch(`/api/agents/${id}`),
+  spawnAgent: (body: { agentPresetId?: string; roleId: string; workOrderId?: string; taskId?: string; initialPrompt?: string }) =>
+    apiFetch("/api/agents/spawn", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  killAgent: (id: string, reason?: string) =>
+    apiFetch(`/api/agents/${id}${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`, {
+      method: "DELETE",
+    }),
+  listAgentPresets: () => apiFetch("/api/agents/presets"),
+
   // Read
   listWorkOrders: () => apiFetch("/api/work-orders"),
   getSnapshot: (id: string) => apiFetch(`/api/work-orders/${id}`),

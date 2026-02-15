@@ -48,7 +48,7 @@ export function registerWsRoute(
     app.log.info(`WebSocket client connected (${clients.size} total)`);
 
     // Clients can send filter updates
-    socket.on("message", (data) => {
+    socket.on("message", (data: import("ws").RawData) => {
       try {
         const msg = JSON.parse(data.toString()) as {
           type?: string;
