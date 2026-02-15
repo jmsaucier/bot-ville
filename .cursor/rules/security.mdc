@@ -5,35 +5,77 @@ alwaysApply: true
 
 ## Environment Variables
 - `.env*` files are gitignored; Turbo `build` task declares `.env*` as inputs
-- `OPENAI_API_KEY` — required by `OpenAIEmbedder` in `@repo/memory`; read from `process.env`
-- `NEXT_PUBLIC_API_URL` — web dashboard API base (defaults to `http://localhost:4000`)
+- `OPENAI_API_KEY` — required by `OpenAIEmbedder` in `packages/memory/src/openai-embedder.ts`; read from `process.env.OPENAI_API_KEY` or passed via constructor options
+- `NEXT_PUBLIC_API_URL` — web dashboard API base; defaults to `http://localhost:4000`; used in `apps/web/app/lib/api.ts`
 
 ## Secrets Handling
 - No secrets in source — `.env*`, `*.pem` are gitignored
-- `OpenAIEmbedder` accepts key via constructor options or `process.env.OPENAI_API_KEY`
-- Never log or persist API keys in event payloads or `EventLog` rows
+- `OpenAIEmbedder` constructor: `new OpenAIEmbedder({ apiKey?: string })` — falls back to `process.env.OPENAI_API_KEY`
+- Never log or persist API keys in event payloads or `EventLog` rows (they are broadcast via WebSocket)
 
 ## Data Storage (gitignored)
-- SQLite database: `apps/backend/data/farm.db` (via Prisma, `apps/backend/data/` gitignored)
-- Runtime memory: `.bot-ville/` at repo root (JSON files for knowledge, agent state, history)
-- JSON fields in SQLite stored as strings; PrismaAdapter serializes/deserializes
+- SQLite database: `apps/backend/data/farm.db` (Prisma datasource: `file:../data/farm.db`; `apps/backend/data/` gitignored)
+- Runtime memory: `.bot-ville/` at repo root (JSON files for knowledge base, agent state, task tracking, history)
+- JSON fields in SQLite stored as strings — `WorkOrder.context`, `Task.deps`, `EventLog.payload` are `String` columns; `PrismaAdapter` helper methods handle `JSON.parse()`/`JSON.stringify()`
 
-## API Security
-- `/api/*` routes — full mutation access (intended for desktop app only)
-- `/public/*` routes — enforces GET-only (returns 405 on non-GET), used by web dashboard
-- No authentication layer currently — security boundary is route prefix separation
-- CORS enabled via `@fastify/cors` on the backend
+## API Route Security
+
+### Mutating routes (`/api/*`) — desktop app only
+Defined in `apps/backend/src/routes/api.ts` via `registerApiRoutes()`:
+- `POST /api/work-orders` — create work order
+- `POST /api/work-orders/:id/tasks` — create task
+- `POST /api/work-orders/:id/tick` — run engine tick
+- `POST /api/work-orders/:id/merge` — request merge
+- `POST /api/work-orders/:id/decisions` — record decision
+- `POST /api/tasks/:id/assign` — assign task to role
+- `POST /api/tasks/:id/status` — update task status
+- `POST /api/tasks/:id/artifact` — submit artifact
+
+### Read-only routes (`/public/*`) — web dashboard only
+Defined in `apps/backend/src/routes/public.ts` via `registerPublicRoutes()`:
+- `GET /public/work-orders` — list work orders
+- `GET /public/work-orders/:id` — get snapshot (work order + tasks + artifacts + decisions + events)
+- `GET /public/work-orders/:id/tasks` — list tasks
+- `GET /public/work-orders/:id/artifacts` — list artifacts
+- `GET /public/events` — query events (supports `workOrderId`, `role`, `action`, `since`, `limit`, `offset` params)
+- `GET /public/health` — health check
+- `GET /public/agents` — list agent sessions (optional `?status=` filter)
+- `GET /public/project` — project context
+- **Guard**: `onRequest` hook rejects non-GET/HEAD/OPTIONS with 405: `"The /public/* endpoints are read-only. Only GET requests are permitted."`
+
+### Agent routes
+Defined in `apps/backend/src/routes/agents.ts` via `registerAgentRoutes()`:
+- `POST /api/agents/spawn` — spawn agent session
+- `POST /api/agents/:id/heartbeat` — agent heartbeat
+- `POST /api/agents/:id/done` — mark agent completed
+- `POST /api/agents/:id/kill` — kill agent
+- `GET /api/agents` — list sessions
+- `POST /api/agents/:id/mail` — send mail
+
+### WebSocket endpoint
+Defined in `apps/backend/src/routes/ws.ts` via `registerWsRoute()`:
+- `ws://localhost:4000/ws` — streams all `EventBus` events
+- Client sends `{ type: "subscribe", filters: { workOrderId?, role?, action? } }` to filter
+- Desktop hook (`apps/desktop/src/renderer/src/hooks/useWebSocket.ts`) buffers up to 500 events client-side and auto-reconnects every 2 seconds on disconnect
+
+### General
+- No authentication layer currently — security boundary is route prefix separation (`/api/*` vs `/public/*`)
+- CORS enabled via `@fastify/cors` with `{ origin: true }`
 
 ## Electron Security
 - Context isolation enabled — renderer cannot access Node.js APIs directly
-- `contextBridge` preload exposes a limited `electronAPI` surface
-- Exposed methods: `openDirectoryDialog()`, `getWebDashboardInfo()`, IPC send/on/invoke
+- `contextBridge` preload exposes a limited `electronAPI` surface:
+  - `openDirectoryDialog()` — opens native directory picker via `dialog.showOpenDialog`
+  - `getWebDashboardInfo()` — returns web dashboard URL and port
+  - `ipc.send(channel, ...args)` — one-way IPC to main process
+  - `ipc.on(channel, callback)` — listen for IPC from main process
+  - `ipc.invoke(channel, ...args)` — request/response IPC
+- Main process IPC handlers: `dialog:open-directory`, `web:get-info`
 
 ## Agent Isolation
-- Each spawned agent runs in its own git worktree (`WorktreeManager`)
-- Agent sessions track `pid`, `workingDirectory`, and `status`
-- `AgentSpawner.kill()` terminates agent processes; `prune()` cleans up stale sessions
-
-## Commands
-- `pnpm db:push` — push Prisma schema to SQLite (dev)
-- `pnpm db:studio` — open Prisma Studio for DB inspection
+- Each spawned agent runs in its own git worktree managed by `WorktreeManager` (`packages/core/src/agents/worktree.ts`)
+- Worktree created via `WorktreeManager.create({ repoRoot, roleId, taskId?, sessionId, baseBranch? })`
+- Agent sessions track `pid`, `workingDirectory`, `status`, and `lastHeartbeat`
+- `AgentSpawner.kill(sessionId)` terminates process and updates status
+- `AgentSpawner.prune()` cleans up stale sessions (no heartbeat, process exited)
+- `WorktreeManager.remove()` / `removeWithBranch()` cleans up worktree directory and branch

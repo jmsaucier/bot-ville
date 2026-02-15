@@ -2,3 +2,71 @@
 alwaysApply: false
 ---
 # Stack Best Practices
+
+## TypeScript
+- Strict mode enabled everywhere via `packages/typescript-config/base.json`: `strict: true`, `noUncheckedIndexedAccess: true`
+- Target: `ES2022`, module: `NodeNext`, moduleResolution: `NodeNext`
+- Always use `.js` extension in relative imports (even for `.ts` files): `import { FarmEngine } from "./engine.js"`
+- Use `import.meta.url` with `fileURLToPath()` instead of `__dirname` / `__filename`
+- Infer types from Zod schemas: `type WorkOrder = z.infer<typeof WorkOrderSchema>` — avoid duplicating types manually
+
+## Zod
+- Define all schemas in `@repo/shared` (`packages/shared/src/`): models in `models.ts`, events in `events.ts`, API contracts in `api.ts`, agent schemas in `agents.ts`
+- Infer TypeScript types with `z.infer<typeof Schema>` — schemas are the single source of truth
+- Parse at API boundaries with `.parse()`: `CreateWorkOrderRequest.parse(request.body)` in route handlers
+- Use discriminated unions for polymorphic data: `FarmEventSchema` discriminates on `type` field
+- Use `z.record(z.unknown())` for freeform JSON objects (e.g., `WorkOrder.context`)
+- Use `.default()` for optional fields with defaults: `z.string().default("")`, `z.array(...).default([])`
+
+## Fastify
+- Register routes via exported functions: `registerApiRoutes(app, engine, adapter)`, `registerPublicRoutes(app, engine, adapter, prisma)`
+- Use Zod `.parse()` on `request.body` / `request.query` — do not use Fastify's built-in JSON Schema validation
+- Return proper HTTP status codes: `201` for creation, `405` for method-not-allowed on public routes
+- Type route params with generics: `app.post<{ Params: { id: string } }>("/api/tasks/:id/assign", ...)`
+
+## Prisma + SQLite
+- JSON fields are stored as `String` columns: `context`, `deps`, `payload`
+- Serialize with `JSON.stringify()` when writing; deserialize with `JSON.parse()` in `PrismaAdapter` helper methods (`toWorkOrder()`, `toTask()`, `toArtifact()`, `toDecision()`, `toEventLog()`)
+- Date fields are `DateTime` in Prisma, converted to ISO strings via `.toISOString()` in adapter helpers
+- Use `@default(uuid())` for primary keys, `@updatedAt` for automatic update timestamps
+- Define indexes on frequently queried columns: `@@index([workOrderId])`, `@@index([status])`, `@@index([timestamp])`
+
+## React Components
+- All `@repo/ui` components (`packages/ui/src/*.tsx`) must start with `"use client"` directive
+- Use `cva` from `class-variance-authority` for variant-based styling (see `packages/ui/src/button.tsx`)
+- Use `cn()` from `@repo/ui/lib/utils` (wraps `clsx` + `tailwind-merge`) for className merging
+- Define component props as inline object types: `function Button({ className, variant, size, ...props }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>)`
+- Use `@base-ui/react` primitives only inside `@repo/ui` — app code imports from `@repo/ui/*`
+
+## Tailwind CSS v4
+- CSS-first configuration — no `tailwind.config.js` / `tailwind.config.ts`
+- Use `@theme` directive in CSS for design tokens
+- Use `tailwind-merge` (via `cn()`) to safely merge conditional classes
+
+## Testing (Vitest)
+- Test files live alongside source or in `__tests__/` directories, named `*.test.ts`
+- Standard `beforeEach` setup for engine tests:
+  ```
+  registerAllRoles()
+  eventBus = new EventBus()
+  adapter = new InMemoryAdapter()
+  engine = new FarmEngine(adapter, eventBus)
+  emittedEvents = []
+  eventBus.onAny((event) => emittedEvents.push(event))
+  ```
+- Use `InMemoryAdapter` from `packages/core/src/testing/in-memory-adapter.ts` — never depend on SQLite in unit tests
+- Assert events by filtering `emittedEvents.map(e => e.type)`
+- Test invalid transitions with `expect(...).rejects.toThrow("Invalid status transition")`
+
+## Imports & Dependencies
+- Internal packages use `workspace:*` protocol in `package.json`
+- Use subpath imports for `@repo/shared`, `@repo/core`, `@repo/memory`: `import { StatusEnum } from "@repo/shared/statuses"`
+- Use wildcard imports for `@repo/ui`: `import { Button } from "@repo/ui/button"`
+- Use `@repo/ui/lib/utils` for the `cn()` utility
+
+## ESM
+- All packages are `"type": "module"` — no CommonJS anywhere
+- Use `import` / `export` exclusively
+- Use `import.meta.url` for path resolution: `const __filename = fileURLToPath(import.meta.url)`
+- ESLint uses flat config format: all `eslint.config.mjs` files import `config` from `@repo/eslint-config/base.js`
+- `eslint-plugin-only-warn` is enabled globally — ESLint errors are treated as warnings
