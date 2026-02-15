@@ -2,3 +2,34 @@
 alwaysApply: true
 ---
 # Architecture & Patterns
+
+## Monorepo Layout (Turborepo + pnpm workspaces)
+- `apps/backend/` — Fastify 5 API (port 4000), Prisma + SQLite, WebSocket streaming
+- `apps/desktop/` — Electron 35 + Vite + React 19 renderer (full mutation access)
+- `apps/web/` — Next.js 16 App Router dashboard (read-only, calls `/public/*` routes only)
+- `packages/core/` — `FarmEngine`, `EventBus`, `PolicyEngine`, roles, `MergeEngine`, `AgentSpawner`
+- `packages/shared/` — Zod schemas, types, event definitions, role enums, API contracts
+- `packages/memory/` — Embedding-backed knowledge store, agent state, task tracking, history
+- `packages/ui/` — shadcn/ui + Tailwind v4 components (Button, StatusBadge, EventCard, RoleAvatar)
+- `packages/eslint-config/`, `packages/typescript-config/` — shared tooling configs
+
+## Module Boundaries
+- `@repo/core` is **pure logic** — no I/O; depends only on `@repo/shared` types
+- `@repo/core` takes a `PersistenceAdapter` interface; backend provides `PrismaAdapter`
+- `@repo/shared` has **zero internal deps** — leaf package for schemas and types
+- `@repo/memory` is **file-based** (JSON in `.bot-ville/`), independent of SQLite
+- `@repo/ui` exports via wildcard (`@repo/ui/button`); all components use `"use client"`
+
+## Communication Patterns
+- **REST API**: backend exposes `/api/*` (mutating, desktop) and `/public/*` (read-only, web)
+- **WebSocket** (`/ws`): `EventBus` broadcasts all events to connected clients with optional filters
+- **IPC**: Electron main↔renderer via `contextBridge` preload (directory picker, web dashboard info)
+- **Event-driven engine**: every `FarmEngine` action emits typed events; persisted as `EventLog` rows
+
+## Key Patterns
+- Subpath exports: `@repo/shared/events`, `@repo/core/roles`, `@repo/memory/openai-embedder`
+- Zod schemas define models; types are inferred (`z.infer<typeof Schema>`)
+- Policy enforcement via `enforcePolicy(action, roleId)` — throws `PolicyViolationError`
+- Merge engine auto-detects JSON vs text; merges by key (JSON) or heading (Markdown)
+- Agent isolation via git worktrees (`WorktreeManager`) per spawned session
+- `InMemoryAdapter` in `@repo/core/src/testing/` for unit tests (no DB needed)

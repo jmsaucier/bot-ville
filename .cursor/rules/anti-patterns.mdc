@@ -2,3 +2,31 @@
 alwaysApply: true
 ---
 # Anti-Patterns
+
+## Architecture Violations
+- **Never import `@repo/core` from `@repo/shared`** — shared is a leaf package with zero internal deps
+- **Never put I/O in `@repo/core`** — engine is pure logic; all I/O goes through `PersistenceAdapter`
+- **Never call `/api/*` routes from the web app** — web is read-only and must use `/public/*` only
+- **Never bypass `enforcePolicy()`** — all role-gated actions must check policy before executing
+- **Never skip status transition validation** — use `isValidTransition()` from `@repo/shared/statuses`
+
+## Data Handling
+- **Never store raw JSON objects in SQLite** — Prisma stores JSON as strings; always serialize/deserialize via adapter helpers
+- **Never hardcode `OPENAI_API_KEY`** or any secret — read from environment variables
+- **Never log event payloads containing secrets** — events are persisted to SQLite and broadcast via WebSocket
+- **Never mutate canonical artifacts directly** — only `GRAIN_ELEVATOR` role (via merge) can modify canonical
+
+## Code Style
+- **Never use CommonJS** (`require`/`module.exports`) — all packages are ESM (`"type": "module"`)
+- **Never define prop types in separate `types` files** — use inline object types on components
+- **Never use `.prettierrc`** — project uses Prettier defaults only
+- **Never create non-flat ESLint configs** — all configs must be flat format (`eslint.config.mjs`)
+- **Never omit `"use client"` on shared UI components** — all `@repo/ui` components need the directive
+
+## Testing
+- **Never depend on SQLite in unit tests** — use `InMemoryAdapter` from `@repo/core/src/testing/`
+- **Never skip Zod validation on API boundaries** — all request/response payloads are schema-validated
+
+## Agent Management
+- **Never spawn agents without a role assignment** — every `AgentSession` requires a `roleId`
+- **Never skip worktree cleanup** — call `WorktreeManager.remove()` when sessions end

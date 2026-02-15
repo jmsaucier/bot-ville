@@ -2,3 +2,29 @@
 alwaysApply: true
 ---
 # Overview
+
+## Domain
+- Farm-themed multi-agent workspace manager (inspired by Gas Town)
+- Agents (LLM-backed CLI tools) are assigned farm roles and collaborate on work orders
+- A work order decomposes into tasks; agents produce draft artifacts that merge into canonical output
+
+## Key Concepts
+- **Work Order** — top-level goal; contains tasks, artifacts, decisions, events
+- **Task** — unit of work; has status lifecycle (NEW→ASSIGNED→IN_PROGRESS→DONE, etc.)
+- **Artifact** — content produced by agents; drafts merge into a single canonical artifact
+- **Decision** — recorded rationale tied to a work order and optional task
+- **Role** — one of 8 farm roles (Farm Manager, Field Hand, Field Scout, Grain Elevator, Bell Ringer, Barn Dog, Heel, Barn Crew) with policy-enforced permissions
+- **Agent Session** — a spawned CLI agent (Cursor, Claude, Codex, etc.) bound to a role + task
+- **Memory** — embedding-backed knowledge store with semantic recall + time-decay scoring
+
+## User Types
+- **Operator** — uses the Desktop console (Electron) to create work orders, assign tasks, spawn agents
+- **Observer** — views the read-only Next.js web dashboard for live event streams and status
+
+## Primary Workflows
+1. Operator creates a work order → engine emits `workorder.created`
+2. Farm Manager assigns tasks to roles → agents are spawned into git worktrees
+3. Field Hands work tasks and submit draft artifacts
+4. Grain Elevator merges drafts into canonical output (text or JSON merge)
+5. Engine tick runs cadence: Bell Ringer ticks, Scout triages, Dogs maintain, Heel alerts
+6. All events stream via WebSocket to desktop + web dashboards

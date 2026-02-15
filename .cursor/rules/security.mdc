@@ -2,3 +2,38 @@
 alwaysApply: true
 ---
 # Security & Configuration
+
+## Environment Variables
+- `.env*` files are gitignored; Turbo `build` task declares `.env*` as inputs
+- `OPENAI_API_KEY` — required by `OpenAIEmbedder` in `@repo/memory`; read from `process.env`
+- `NEXT_PUBLIC_API_URL` — web dashboard API base (defaults to `http://localhost:4000`)
+
+## Secrets Handling
+- No secrets in source — `.env*`, `*.pem` are gitignored
+- `OpenAIEmbedder` accepts key via constructor options or `process.env.OPENAI_API_KEY`
+- Never log or persist API keys in event payloads or `EventLog` rows
+
+## Data Storage (gitignored)
+- SQLite database: `apps/backend/data/farm.db` (via Prisma, `apps/backend/data/` gitignored)
+- Runtime memory: `.bot-ville/` at repo root (JSON files for knowledge, agent state, history)
+- JSON fields in SQLite stored as strings; PrismaAdapter serializes/deserializes
+
+## API Security
+- `/api/*` routes — full mutation access (intended for desktop app only)
+- `/public/*` routes — enforces GET-only (returns 405 on non-GET), used by web dashboard
+- No authentication layer currently — security boundary is route prefix separation
+- CORS enabled via `@fastify/cors` on the backend
+
+## Electron Security
+- Context isolation enabled — renderer cannot access Node.js APIs directly
+- `contextBridge` preload exposes a limited `electronAPI` surface
+- Exposed methods: `openDirectoryDialog()`, `getWebDashboardInfo()`, IPC send/on/invoke
+
+## Agent Isolation
+- Each spawned agent runs in its own git worktree (`WorktreeManager`)
+- Agent sessions track `pid`, `workingDirectory`, and `status`
+- `AgentSpawner.kill()` terminates agent processes; `prune()` cleans up stale sessions
+
+## Commands
+- `pnpm db:push` — push Prisma schema to SQLite (dev)
+- `pnpm db:studio` — open Prisma Studio for DB inspection

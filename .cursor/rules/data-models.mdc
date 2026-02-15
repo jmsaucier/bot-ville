@@ -2,3 +2,36 @@
 alwaysApply: true
 ---
 # Data Models
+
+## Core Entities (Zod schemas in `@repo/shared/models`)
+- **WorkOrder** — `id`, `goal`, `context` (Record), `status`, timestamps
+- **Task** — `id`, `workOrderId`, `title`, `description`, `status`, `ownerRole` (nullable), `deps` (uuid[]), timestamps
+- **Artifact** — `id`, `type`, `content`, `createdByRole`, `linkedTaskId`, `workOrderId`, `version`, `canonical` (bool), timestamps
+- **Decision** — `id`, `summary`, `rationale`, `role`, `linkedTaskId`, `workOrderId`, `createdAt`
+- **EventLog** — `id`, `timestamp`, `role`, `action`, `payload` (Record), `correlationId`, `workOrderId`
+
+## Agent Entities (`@repo/shared/agents`)
+- **AgentPreset** — `id`, `name`, `command`, `args`, `env`, `promptMode`, `resumeFlag`, `resumeStyle`, `instructionsFile`
+- **AgentSession** — `id`, `agentPresetId`, `roleId`, `workOrderId`, `taskId`, `status`, `pid`, `workingDirectory`, `lastHeartbeat`, timestamps
+- **AgentMail** — `id`, `from`, `to`, `subject`, `body`, `sentAt`, `readAt`
+
+## Memory Entities (TypeScript interfaces in `@repo/memory/src/types.ts`)
+- **MemoryEntry** — `id`, `title`, `content`, `tags[]`, timestamps + `lastAccessedAt`
+- **VectorIndex** — `model`, `entries` (Record of id→embedding vector)
+- **AgentState** — `agentId`, `data` (Record), `updatedAt`
+- **TaskStep** — `id`, `title`, `status`, optional `description`
+
+## Status Lifecycle (`@repo/shared/statuses`)
+- 8 statuses: `NEW → ASSIGNED → IN_PROGRESS → BLOCKED/REVIEW → MERGED → DONE`, or `FAILED`
+- Transitions enforced via `STATUS_TRANSITIONS` map and `isValidTransition(from, to)`
+
+## Roles (`@repo/shared/roles`)
+- 8 roles: `FARM_MANAGER`, `FIELD_HAND`, `FIELD_SCOUT`, `GRAIN_ELEVATOR`, `BELL_RINGER`, `BARN_DOG`, `HEEL`, `BARN_CREW`
+- Each role has explicit allow/deny policies and capability flags (`canModifyCanonical`, `canCompleteTasks`, `canCreateArtifacts`)
+
+## Events (`@repo/shared/events`)
+- 22 event types across 7 categories: workorder, task, artifact, merge, cadence/system, agent, project
+- `FarmEventSchema` is a Zod discriminated union; `WireEventSchema` wraps it with metadata (id, timestamp, role, correlationId)
+
+## Aggregate Read Model
+- **WorkOrderSnapshot** — combines WorkOrder + Task[] + Artifact[] + Decision[] + EventLog[] for full context
