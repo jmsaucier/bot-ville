@@ -50,6 +50,9 @@ export {
   MergeRequestedPayload,
   MergeConflictPayload,
   MergeCompletedPayload,
+  GitMergeRequestedPayload,
+  GitMergeCompletedPayload,
+  GitMergeConflictPayload,
   CadenceTickPayload,
   ScoutTriagePayload,
   DogsMaintenancePayload,
@@ -66,6 +69,22 @@ export {
   type FarmEvent,
   type WireEvent,
 } from "./events.js";
+
+// Git Merge Requests
+export {
+  GitMergeRequestStatusEnum,
+  GitMergeRequestSchema,
+  CreateGitMergeRequestInput,
+  ExecuteGitMergeRequestInput,
+  GitMergeRequestResponse,
+  GitMergeRequestListResponse,
+  type GitMergeRequestStatus,
+  type GitMergeRequest,
+  type CreateGitMergeRequestInputType,
+  type ExecuteGitMergeRequestInputType,
+  type GitMergeRequestResponseType,
+  type GitMergeRequestListResponseType,
+} from "./merge-request.js";
 
 // Agents
 export {

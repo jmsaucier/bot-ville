@@ -2,6 +2,7 @@ import { z } from "zod";
 import { RoleIdEnum } from "./roles.js";
 import { StatusEnum } from "./statuses.js";
 import { AgentSessionStatusEnum } from "./agents.js";
+import { GitMergeRequestStatusEnum } from "./merge-request.js";
 
 // ─── Event Type Enum ─────────────────────────────────────────────────────────
 
@@ -15,6 +16,9 @@ export const EventTypeEnum = z.enum([
   "merge.requested",
   "merge.conflict",
   "merge.completed",
+  "merge.git_requested",
+  "merge.git_completed",
+  "merge.git_conflict",
   "cadence.tick",
   "scout.triage",
   "dogs.maintenance",
@@ -87,6 +91,33 @@ export const MergeCompletedPayload = z.object({
   workOrderId: z.string().uuid(),
   artifactType: z.string(),
   canonicalArtifactId: z.string().uuid(),
+});
+
+// ─── Git Merge Event Payloads ───────────────────────────────────────────────
+
+export const GitMergeRequestedPayload = z.object({
+  mergeRequestId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  sourceBranch: z.string(),
+  targetBranch: z.string(),
+  roleId: RoleIdEnum,
+  workOrderId: z.string().uuid().nullable(),
+});
+
+export const GitMergeCompletedPayload = z.object({
+  mergeRequestId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  sourceBranch: z.string(),
+  targetBranch: z.string(),
+  status: GitMergeRequestStatusEnum,
+});
+
+export const GitMergeConflictPayload = z.object({
+  mergeRequestId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  sourceBranch: z.string(),
+  targetBranch: z.string(),
+  conflictFiles: z.array(z.string()),
 });
 
 export const CadenceTickPayload = z.object({
@@ -213,6 +244,18 @@ export const FarmEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("merge.completed"),
     payload: MergeCompletedPayload,
+  }),
+  z.object({
+    type: z.literal("merge.git_requested"),
+    payload: GitMergeRequestedPayload,
+  }),
+  z.object({
+    type: z.literal("merge.git_completed"),
+    payload: GitMergeCompletedPayload,
+  }),
+  z.object({
+    type: z.literal("merge.git_conflict"),
+    payload: GitMergeConflictPayload,
   }),
   z.object({
     type: z.literal("cadence.tick"),

@@ -36,6 +36,7 @@ export {
 
 // Merge
 export { MergeEngine, type MergeResult } from "./merge/merge-engine.js";
+export { GitMergeEngine, type GitMergeResult } from "./merge/git-merge.js";
 export { mergeTexts, parseSections } from "./merge/text-merge.js";
 export { mergeJsonObjects, mergeJsonStrings } from "./merge/json-merge.js";
 
@@ -46,6 +47,7 @@ export {
   WorktreeManager,
   InstructionGenerator,
   type SpawnOptions,
+  type WorktreeConfig,
   type WorktreeOptions,
   type WorktreeInfo,
   type InstructionContext,

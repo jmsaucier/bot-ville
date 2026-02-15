@@ -10,6 +10,7 @@ export type ActionType =
   | "submit_artifact"
   | "modify_canonical"
   | "request_merge"
+  | "merge_git_branch"
   | "canonicalize_artifact"
   | "trigger_tick"
   | "triage_task"

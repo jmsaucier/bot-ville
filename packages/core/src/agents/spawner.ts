@@ -7,6 +7,7 @@ import type {
 } from "@repo/shared";
 import { EventBus } from "../event-bus.js";
 import { AgentRegistry } from "./registry.js";
+import { WorktreeManager } from "./worktree.js";
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -33,25 +34,52 @@ export interface SpawnOptions {
   env?: Record<string, string>;
   /** URL of the bot-ville backend API */
   apiUrl?: string;
+  /**
+   * Whether to create an isolated git worktree for this agent.
+   * When true (and repoRoot is configured), the agent will run in its own
+   * worktree on a dedicated branch. Defaults to true when a taskId is provided.
+   */
+  useWorktree?: boolean;
+}
+
+/** Configuration for worktree-based agent isolation. */
+export interface WorktreeConfig {
+  /** The root of the git repository */
+  repoRoot: string;
+  /** Base branch to create worktrees from (defaults to "main") */
+  baseBranch?: string;
 }
 
 interface TrackedProcess {
   session: AgentSession;
   process: ChildProcess | null;
+  /** The worktree branch name, if this session uses a worktree. */
+  worktreeBranch: string | null;
 }
 
 /**
  * Manages the lifecycle of agent CLI processes.
  * Spawns agents, tracks PIDs, monitors health, and emits events.
+ *
+ * When configured with a WorktreeManager + repoRoot, agents are spawned
+ * in isolated git worktrees so they can make changes without interfering
+ * with each other or the main working directory.
  */
 export class AgentSpawner {
   private sessions = new Map<string, TrackedProcess>();
   private _defaultWorkingDirectory: string | undefined;
+  private readonly worktreeManager: WorktreeManager | null;
+  private readonly worktreeConfig: WorktreeConfig | null;
 
   constructor(
     private readonly registry: AgentRegistry,
-    private readonly eventBus: EventBus
-  ) {}
+    private readonly eventBus: EventBus,
+    worktreeManager?: WorktreeManager,
+    worktreeConfig?: WorktreeConfig
+  ) {
+    this.worktreeManager = worktreeManager ?? null;
+    this.worktreeConfig = worktreeConfig ?? null;
+  }
 
   /** Set the default working directory for new agent sessions. */
   setDefaultWorkingDirectory(dir: string): void {
@@ -66,18 +94,61 @@ export class AgentSpawner {
   /**
    * Spawn a new agent process.
    * 1. Resolves the agent preset
-   * 2. Creates a session record
-   * 3. Spawns the CLI process with env vars
-   * 4. Emits agent.spawned event
-   * 5. Monitors for exit
+   * 2. Creates a worktree (if configured and task-based)
+   * 3. Creates a session record
+   * 4. Spawns the CLI process with env vars
+   * 5. Emits agent.spawned event
+   * 6. Monitors for exit
    */
   async spawn(options: SpawnOptions): Promise<AgentSession> {
     const presetId = options.agentPresetId ?? this.registry.getDefaultPresetId();
     const preset = this.registry.getPresetOrThrow(presetId);
 
     const sessionId = uuid();
-    const cwd = options.workingDirectory ?? this._defaultWorkingDirectory ?? process.cwd();
     const apiUrl = options.apiUrl ?? "http://localhost:4000";
+
+    // Determine whether to use a worktree for this session.
+    // Default: use a worktree when a taskId is provided and worktree support is configured.
+    const shouldUseWorktree =
+      (options.useWorktree ?? !!options.taskId) &&
+      this.worktreeManager !== null &&
+      this.worktreeConfig !== null;
+
+    let cwd = options.workingDirectory ?? this._defaultWorkingDirectory ?? process.cwd();
+    let worktreeBranch: string | null = null;
+
+    // Create an isolated worktree for this agent session
+    if (shouldUseWorktree) {
+      const wm = this.worktreeManager!;
+      const wc = this.worktreeConfig!;
+
+      try {
+        cwd = await wm.create({
+          repoRoot: wc.repoRoot,
+          roleId: options.roleId,
+          taskId: options.taskId,
+          sessionId,
+          baseBranch: wc.baseBranch ?? "main",
+        });
+        // Derive the branch name so we can expose it to the agent
+        const shortId =
+          (options.taskId ?? sessionId).length > 8
+            ? (options.taskId ?? sessionId).slice(0, 8)
+            : (options.taskId ?? sessionId);
+        const safeRole = options.roleId.toLowerCase().replace(/_/g, "-");
+        worktreeBranch = `bv/agent/${safeRole}/${shortId}`;
+      } catch (err) {
+        // Worktree creation failed — fall back to the plain working directory
+        // rather than blocking the spawn entirely.
+        this.emitEvent({
+          type: "system.error",
+          payload: {
+            error: `Worktree creation failed for session ${sessionId}: ${err instanceof Error ? err.message : String(err)}`,
+            context: { sessionId, roleId: options.roleId },
+          },
+        });
+      }
+    }
 
     const session: AgentSession = {
       id: sessionId,
@@ -111,6 +182,9 @@ export class AgentSpawner {
     if (options.taskId) {
       agentEnv.BV_TASK_ID = options.taskId;
     }
+    if (worktreeBranch) {
+      agentEnv.BV_WORKTREE_BRANCH = worktreeBranch;
+    }
 
     // Build the command
     const args = [...preset.args];
@@ -135,7 +209,7 @@ export class AgentSpawner {
     } catch (err) {
       session.status = "failed";
       session.completedAt = now();
-      this.sessions.set(sessionId, { session, process: null });
+      this.sessions.set(sessionId, { session, process: null, worktreeBranch });
 
       this.emitEvent({
         type: "agent.failed",
@@ -148,13 +222,18 @@ export class AgentSpawner {
         },
       });
 
+      // Clean up worktree on spawn failure
+      if (worktreeBranch) {
+        void this.cleanupWorktree(sessionId);
+      }
+
       return session;
     }
 
     session.pid = child.pid ?? null;
     session.status = "running";
 
-    this.sessions.set(sessionId, { session, process: child });
+    this.sessions.set(sessionId, { session, process: child, worktreeBranch });
 
     // Emit spawned event
     this.emitEvent({
@@ -206,6 +285,11 @@ export class AgentSpawner {
             exitCode: code,
           },
         });
+
+        // Clean up worktree on failure (nothing to merge)
+        if (tracked.worktreeBranch) {
+          void this.cleanupWorktree(sessionId);
+        }
       }
     });
 
@@ -227,6 +311,11 @@ export class AgentSpawner {
           exitCode: null,
         },
       });
+
+      // Clean up worktree on error (nothing to merge)
+      if (tracked.worktreeBranch) {
+        void this.cleanupWorktree(sessionId);
+      }
     });
 
     return session;
@@ -264,6 +353,11 @@ export class AgentSpawner {
         reason,
       },
     });
+
+    // Clean up worktree on kill (nothing to merge)
+    if (tracked.worktreeBranch) {
+      void this.cleanupWorktree(sessionId);
+    }
 
     return true;
   }
@@ -347,6 +441,39 @@ export class AgentSpawner {
     }
   }
 
+  /**
+   * Get the worktree branch name for a session, if one was created.
+   */
+  getWorktreeBranch(sessionId: string): string | null {
+    return this.sessions.get(sessionId)?.worktreeBranch ?? null;
+  }
+
+  /**
+   * Clean up the git worktree for a session.
+   * Removes the worktree directory and deletes the associated branch.
+   *
+   * Called automatically on kill/failed. For completed sessions, this
+   * should be called after the branch has been merged (by GitMergeEngine).
+   */
+  async cleanupWorktree(sessionId: string): Promise<void> {
+    if (!this.worktreeManager || !this.worktreeConfig) return;
+
+    const tracked = this.sessions.get(sessionId);
+    if (!tracked) return;
+
+    const { roleId, taskId } = tracked.session;
+    try {
+      await this.worktreeManager.removeWithBranch(
+        this.worktreeConfig.repoRoot,
+        sessionId,
+        roleId,
+        taskId ?? undefined
+      );
+    } catch {
+      // Best-effort cleanup — don't fail the caller
+    }
+  }
+
   /** Remove completed/failed/killed sessions from in-memory tracking. */
   prune(): number {
     let pruned = 0;
@@ -356,6 +483,14 @@ export class AgentSpawner {
         tracked.session.status === "failed" ||
         tracked.session.status === "killed"
       ) {
+        // Clean up any lingering worktrees for failed/killed sessions.
+        // Completed sessions should already have been cleaned up after merge.
+        if (
+          tracked.worktreeBranch &&
+          (tracked.session.status === "failed" || tracked.session.status === "killed")
+        ) {
+          void this.cleanupWorktree(sessionId);
+        }
         this.sessions.delete(sessionId);
         pruned++;
       }
