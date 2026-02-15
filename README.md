@@ -1,135 +1,300 @@
-# Turborepo starter
+# bot-ville
 
-This Turborepo starter is maintained by the Turborepo core team.
+A farm-themed multi-agent workspace manager inspired by [Gas Town](https://github.com/steveyegge/gastown). Features a first-party, human-like memory system with embedding-backed recall and a complete orchestration engine with role-based policy enforcement.
 
-## Using this example
+## Architecture
 
-Run the following command:
+```
+                    +-----------------------+
+                    |   Electron Desktop    |
+                    |   (Farm Ops Console)  |
+                    |   mutate + read       |
+                    +----------+------------+
+                               |
+                    POST /api/* | GET /api/*
+                    WebSocket   |
+                               v
+                    +-----------------------+
+                    |   Fastify Backend     |
+                    |   :4000               |
+                    |                       |
+                    |  /api/*  (mutating)   |
+                    |  /public/* (read-only)|
+                    |  /ws     (events)     |
+                    +-----+-----+-----------+
+                          |     |
+                  +-------+     +-------+
+                  v                     v
+          +---------------+    +----------------+
+          |  FarmEngine   |    |  SQLite (Prisma)|
+          |  (@repo/core) |    |  farm.db        |
+          +---------------+    +----------------+
+                               ^
+                    GET /public/* |
+                    WebSocket    |
+                               |
+                    +-----------------------+
+                    |   Next.js Web View    |
+                    |   :3000               |
+                    |   READ-ONLY           |
+                    +-----------------------+
+```
+
+## Monorepo Structure
+
+```
+bot-ville/
+  apps/
+    backend/          Fastify API + WebSocket + SQLite
+    desktop/          Electron + Vite + React (Farm Ops Console)
+    web/              Next.js read-only dashboard
+  packages/
+    core/             Engine, roles, policies, event bus, merge logic
+    shared/           Zod schemas, TypeScript types, event definitions
+    memory/           Embedding-backed memory system
+    ui/               Shared React components (shadcn/ui + Tailwind v4)
+    eslint-config/    Shared ESLint flat configs
+    typescript-config/ Shared tsconfig bases
+```
+
+## Farm Roles
+
+| Role | ID | Responsibilities | Constraints |
+|------|-----|-----------------|-------------|
+| Farm Manager | `FARM_MANAGER` | Orchestrator. Creates work orders, assigns tasks, requests merges. | Can complete tasks |
+| Field Hand | `FIELD_HAND` | Executor. Works tasks, submits draft artifacts. | **Cannot** modify canonical artifacts |
+| Field Scout | `FIELD_SCOUT` | Triage/unblock. Resolves blocked tasks. | **Cannot** complete tasks or create artifacts |
+| Grain Elevator | `GRAIN_ELEVATOR` | Merge gate. Canonicalizes artifacts, resolves conflicts. | Can modify canonical |
+| Bell Ringer | `BELL_RINGER` | Cadence daemon. Triggers system ticks. | **Cannot** create user-facing artifacts |
+| Barn Dog | `BARN_DOG` | Maintenance. Background upkeep tasks. | **Cannot** complete tasks |
+| Heel | `HEEL` | Watchdog. Monitors health, raises alerts. | **Cannot** complete tasks |
+| Barn Crew | `BARN_CREW` | Persistent specialists. Domain-specific agents. | Can complete tasks, submit artifacts |
+
+### Routing Constraints
+
+- All "final output" must go through **Grain Elevator** to become canonical
+- **Field Hands** cannot directly modify canonical artifacts
+- **Scout** cannot complete tasks; only triage/unblock
+- **Bell Ringer** only triggers cadence; does not create user-facing artifacts
+- **Web view** is read-only (no mutations, no task claiming, no prompting agents)
+
+## Event Streaming
+
+Everything the system does emits events. Events flow through:
+
+1. **FarmEngine** performs an action
+2. **EventBus** (in-process) receives the event
+3. Event is persisted to **EventLog** table (SQLite)
+4. Event is broadcast to all **WebSocket** clients
+
+### Event Types
+
+| Event | Description |
+|-------|-------------|
+| `workorder.created` | New work order created |
+| `task.created` | New task added to work order |
+| `task.assigned` | Task assigned to a role |
+| `task.status_changed` | Task status transition |
+| `artifact.submitted` | Draft artifact submitted |
+| `artifact.canonicalized` | Artifact promoted to canonical |
+| `merge.requested` | Merge process initiated |
+| `merge.conflict` | Merge conflict detected |
+| `merge.completed` | Merge completed successfully |
+| `cadence.tick` | System tick triggered |
+| `scout.triage` | Scout triaged a blocked task |
+| `dogs.maintenance` | Barn Dog maintenance action |
+| `heel.watchdog_alert` | Watchdog alert raised |
+| `decision.recorded` | Decision recorded |
+
+### WebSocket Protocol
+
+Connect to `ws://localhost:4000/ws`. Events arrive as JSON:
+
+```json
+{
+  "id": "uuid",
+  "timestamp": "2026-02-14T...",
+  "event": {
+    "type": "task.status_changed",
+    "payload": {
+      "taskId": "...",
+      "fromStatus": "IN_PROGRESS",
+      "toStatus": "DONE"
+    }
+  }
+}
+```
+
+Send subscription filters:
+
+```json
+{
+  "type": "subscribe",
+  "filters": {
+    "workOrderId": "...",
+    "eventTypes": ["task.status_changed", "artifact.submitted"]
+  }
+}
+```
+
+## Task Statuses
+
+`NEW` -> `ASSIGNED` -> `IN_PROGRESS` -> `BLOCKED` / `REVIEW` / `DONE` / `FAILED`
+
+Full transition map:
+
+| From | Valid Transitions |
+|------|------------------|
+| NEW | ASSIGNED, FAILED |
+| ASSIGNED | IN_PROGRESS, BLOCKED, FAILED |
+| IN_PROGRESS | BLOCKED, REVIEW, DONE, FAILED |
+| BLOCKED | ASSIGNED, IN_PROGRESS, FAILED |
+| REVIEW | MERGED, IN_PROGRESS, BLOCKED, FAILED |
+| MERGED | DONE |
+| DONE | (terminal) |
+| FAILED | NEW |
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >= 18
+- pnpm 9
+
+### Install
 
 ```sh
-npx create-turbo@latest
+pnpm install
 ```
 
-## What's inside?
+### Initialize Database
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```sh
+cd apps/backend
+npx prisma db push
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Run (Backend + Web)
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```sh
+pnpm dev
 ```
 
-### Develop
+This starts:
+- Backend API on http://localhost:4000
+- Web dashboard on http://localhost:3000
 
-To develop all apps and packages, run the following command:
+### Run (Backend + Desktop)
 
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```sh
+pnpm desktop
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Run Tests
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```sh
+pnpm test
 ```
 
-### Remote Caching
+Or just the core tests:
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```sh
+cd packages/core
+npx vitest run
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## Demo
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### Run the scripted demo
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
+Start the backend, then:
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+```sh
+curl -X POST http://localhost:4000/api/demo/run
 ```
 
-## Useful Links
+This creates a work order ("Design a small irrigation plan and bill of materials"), generates tasks, simulates a blocked task, runs Scout triage, submits artifacts, and merges them via Grain Elevator.
 
-Learn more about the power of Turborepo:
+### Example curl calls
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+**Create a work order:**
+
+```sh
+curl -X POST http://localhost:4000/api/work-orders \
+  -H "Content-Type: application/json" \
+  -d '{"goal": "Build a chicken coop"}'
+```
+
+**Create a task:**
+
+```sh
+curl -X POST http://localhost:4000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"workOrderId": "<WO_ID>", "title": "Research coop designs"}'
+```
+
+**Assign a task:**
+
+```sh
+curl -X POST http://localhost:4000/api/tasks/<TASK_ID>/assign \
+  -H "Content-Type: application/json" \
+  -d '{"roleId": "FIELD_HAND"}'
+```
+
+**Run a tick:**
+
+```sh
+curl -X POST http://localhost:4000/api/work-orders/<WO_ID>/tick
+```
+
+**Get a snapshot:**
+
+```sh
+curl http://localhost:4000/public/work-orders/<WO_ID>
+```
+
+**Query events:**
+
+```sh
+curl "http://localhost:4000/public/events?limit=20"
+```
+
+**Check health:**
+
+```sh
+curl http://localhost:4000/public/health
+```
+
+## Read-Only Enforcement
+
+The web view only calls `/public/*` endpoints. The backend enforces this:
+
+- `/public/*` routes only register GET handlers
+- A request hook rejects any non-GET method to `/public/*` with 405 Method Not Allowed
+- The web app's API client is hardcoded to only use `/public/*` paths
+
+## Merge Behavior (Grain Elevator)
+
+Two merge modes:
+
+1. **Text merge**: Section-based (heading-aware). Sections with the same heading are compared; identical content merges cleanly, different content triggers a conflict.
+
+2. **JSON merge**: Key-based recursive merge. Non-overlapping keys merge cleanly. Same key with different values triggers a conflict.
+
+On conflict:
+- `merge.conflict` event emitted
+- Conflict report artifact created
+- Affected tasks marked `REVIEW`
+- Farm Manager notified via event
+
+## Tech Stack
+
+- **TypeScript 5.9** (strict mode, ESM)
+- **pnpm 9** + **Turborepo 2**
+- **Fastify 5** (backend)
+- **Prisma** + **SQLite** (persistence)
+- **@fastify/websocket** (real-time)
+- **Electron 35** + **Vite** + **React 19** (desktop)
+- **Next.js 16** (web, read-only)
+- **Zod** (schema validation)
+- **Vitest** (testing)

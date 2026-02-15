@@ -1,102 +1,147 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+import { publicApi } from "./lib/api.js";
+import { StatusBadge } from "./components/StatusBadge.js";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+interface WorkOrder {
+  id: string;
+  goal: string;
+  status: string;
+  createdAt: string;
+}
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
+interface Health {
+  status: string;
+  uptime: number;
+  workOrderCount: number;
+  activeTaskCount: number;
+  blockedTaskCount: number;
+  lastTick: string | null;
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  let workOrders: WorkOrder[] = [];
+  let health: Health | null = null;
+  let error: string | null = null;
+
+  try {
+    [workOrders, health] = await Promise.all([
+      publicApi.listWorkOrders() as Promise<WorkOrder[]>,
+      publicApi.getHealth() as Promise<Health>,
+    ]);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed to connect to backend";
+  }
 
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
+    <div>
+      <h2
+        style={{
+          fontSize: "1.3rem",
+          fontWeight: 600,
+          marginBottom: "1.5rem",
+        }}
+      >
+        Dashboard
+      </h2>
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+      {error && (
+        <div
+          style={{
+            padding: "1rem",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--danger)",
+            borderRadius: "8px",
+            marginBottom: "1rem",
+            color: "var(--danger)",
+          }}
+        >
+          Backend not available: {error}
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      )}
+
+      {/* Health Cards */}
+      {health && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "0.75rem",
+            marginBottom: "1.5rem",
+          }}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <StatCard label="Work Orders" value={health.workOrderCount} />
+          <StatCard label="Active Tasks" value={health.activeTaskCount} />
+          <StatCard label="Blocked Tasks" value={health.blockedTaskCount} />
+          <StatCard
+            label="Last Tick"
+            value={health.lastTick ? new Date(health.lastTick).toLocaleTimeString() : "Never"}
           />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.dev →
-        </a>
-      </footer>
+        </div>
+      )}
+
+      {/* Work Orders */}
+      <div
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "8px",
+          padding: "1rem",
+        }}
+      >
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+          Work Orders
+        </h3>
+        {workOrders.length === 0 ? (
+          <p style={{ color: "var(--text-muted)" }}>
+            No work orders yet. Use the Electron desktop app to create work orders.
+          </p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
+                <th style={{ padding: "0.5rem" }}>Goal</th>
+                <th style={{ padding: "0.5rem" }}>Status</th>
+                <th style={{ padding: "0.5rem" }}>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workOrders.map((wo) => (
+                <tr key={wo.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "0.5rem" }}>
+                    <a href={`/work-orders/${wo.id}`}>{wo.goal}</a>
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>
+                    <StatusBadge status={wo.status} />
+                  </td>
+                  <td style={{ padding: "0.5rem", color: "var(--text-muted)" }}>
+                    {new Date(wo.createdAt).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "8px",
+        padding: "1rem",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--accent)" }}>
+        {value}
+      </div>
+      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{label}</div>
     </div>
   );
 }

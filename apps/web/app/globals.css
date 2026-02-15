@@ -1,50 +1,44 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #0f1117;
+  --bg-surface: #1a1d27;
+  --bg-hover: #252836;
+  --border: #2e3142;
+  --text: #e4e5e7;
+  --text-muted: #8b8fa3;
+  --accent: #6c8eef;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ef4444;
+  --info: #60a5fa;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
+  --status-new: #60a5fa;
+  --status-assigned: #a78bfa;
+  --status-in-progress: #fbbf24;
+  --status-blocked: #ef4444;
+  --status-review: #f97316;
+  --status-merged: #4ade80;
+  --status-done: #22c55e;
+  --status-failed: #dc2626;
 }
 
 * {
-  box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
 }
 
 a {
-  color: inherit;
+  color: var(--accent);
   text-decoration: none;
 }
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-
-  .imgLight {
-    display: none;
-  }
-  .imgDark {
-    display: unset;
-  }
+a:hover {
+  text-decoration: underline;
 }

@@ -36,6 +36,9 @@ yarn-error.log*
 # Bot-ville runtime memory data
 .bot-ville/
 
+# SQLite database
+apps/backend/data/
+
 # Misc
 .DS_Store
 *.pem
