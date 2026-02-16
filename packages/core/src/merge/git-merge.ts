@@ -61,8 +61,8 @@ export class GitMergeEngine {
       workOrderId?: string | null;
     }
   ): GitMergeRequest {
-    // Enforce that only the Grain Elevator can merge git branches
-    enforcePolicy("merge_git_branch", "GRAIN_ELEVATOR");
+    // Enforce that the requesting role has permission to merge git branches
+    enforcePolicy("merge_git_branch", roleId);
 
     const targetBranch = options?.targetBranch ?? "main";
 
