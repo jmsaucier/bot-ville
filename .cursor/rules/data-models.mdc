@@ -4,34 +4,59 @@ alwaysApply: true
 # Data Models
 
 ## Core Entities (Zod schemas in `@repo/shared/models`)
-- **WorkOrder** — `id`, `goal`, `context` (Record), `status`, timestamps
-- **Task** — `id`, `workOrderId`, `title`, `description`, `status`, `ownerRole` (nullable), `deps` (uuid[]), timestamps
-- **Artifact** — `id`, `type`, `content`, `createdByRole`, `linkedTaskId`, `workOrderId`, `version`, `canonical` (bool), timestamps
-- **Decision** — `id`, `summary`, `rationale`, `role`, `linkedTaskId`, `workOrderId`, `createdAt`
-- **EventLog** — `id`, `timestamp`, `role`, `action`, `payload` (Record), `correlationId`, `workOrderId`
+- **WorkOrderSchema** — `id: z.string().uuid()`, `goal: z.string().min(1)`, `context: z.record(z.unknown()).optional().default({})`, `status: StatusEnum`, `createdAt: z.string().datetime()`, `updatedAt: z.string().datetime()`
+- **TaskSchema** — `id: z.string().uuid()`, `workOrderId: z.string().uuid()`, `title: z.string().min(1)`, `description: z.string().default("")`, `status: StatusEnum`, `ownerRole: RoleIdEnum.nullable().default(null)`, `deps: z.array(z.string().uuid()).default([])`, `createdAt`, `updatedAt`
+- **ArtifactSchema** — `id: z.string().uuid()`, `type: z.string().min(1)`, `content: z.string()`, `createdByRole: RoleIdEnum`, `linkedTaskId: z.string().uuid().nullable().default(null)`, `workOrderId: z.string().uuid()`, `version: z.number().int().positive().default(1)`, `canonical: z.boolean().default(false)`, `createdAt`, `updatedAt`
+- **DecisionSchema** — `id: z.string().uuid()`, `summary: z.string().min(1)`, `rationale: z.string().default("")`, `role: RoleIdEnum`, `linkedTaskId: z.string().uuid().nullable().default(null)`, `workOrderId: z.string().uuid()`, `createdAt`
+- **EventLogSchema** — `id: z.string().uuid()`, `timestamp: z.string().datetime()`, `role: RoleIdEnum.nullable().default(null)`, `action: z.string().min(1)`, `payload: z.record(z.unknown()).default({})`, `correlationId: z.string().uuid().nullable().default(null)`, `workOrderId: z.string().uuid().nullable().default(null)`
+- **WorkOrderSnapshotSchema** — `workOrder: WorkOrderSchema`, `tasks: z.array(TaskSchema)`, `artifacts: z.array(ArtifactSchema)`, `decisions: z.array(DecisionSchema)`, `events: z.array(EventLogSchema)`
 
 ## Agent Entities (`@repo/shared/agents`)
-- **AgentPreset** — `id`, `name`, `command`, `args`, `env`, `promptMode`, `resumeFlag`, `resumeStyle`, `instructionsFile`
-- **AgentSession** — `id`, `agentPresetId`, `roleId`, `workOrderId`, `taskId`, `status`, `pid`, `workingDirectory`, `lastHeartbeat`, timestamps
-- **AgentMail** — `id`, `from`, `to`, `subject`, `body`, `sentAt`, `readAt`
+- **AgentPresetSchema** — `id: z.string().min(1)`, `name: z.string().min(1)`, `command: z.string().min(1)`, `args: z.array(z.string()).default([])`, `env: z.record(z.string()).default({})`, `processNames: z.array(z.string()).default([])`, `promptMode: PromptModeEnum.default("arg")`, `sessionIdEnv: z.string().default("")`, `resumeFlag: z.string().default("")`, `resumeStyle: ResumeStyleEnum.default("flag")`, `supportsHooks: z.boolean().default(false)`, `instructionsFile: z.string().default("AGENTS.md")`, `nonInteractive: z.object({ subcommand, promptFlag, outputFlag }).optional()`
+- **AgentSessionSchema** — `id: z.string().uuid()`, `agentPresetId: z.string().min(1)`, `roleId: RoleIdEnum`, `workOrderId: z.string().uuid().nullable()`, `taskId: z.string().uuid().nullable()`, `status: AgentSessionStatusEnum`, `pid: z.number().int().nullable()`, `workingDirectory: z.string().nullable()`, `agentSessionId: z.string().nullable()`, `lastHeartbeat: z.string().datetime().nullable()`, `spawnedAt: z.string().datetime()`, `completedAt: z.string().datetime().nullable()`
+- **AgentMailSchema** — `id: z.string().uuid()`, `from: z.string().min(1)`, `to: z.string().min(1)`, `subject: z.string().min(1)`, `body: z.string().default("")`, `sentAt: z.string().datetime()`, `readAt: z.string().datetime().nullable()`
+
+## Agent Enums (`@repo/shared/agents`)
+- **AgentSessionStatusEnum**: `"spawning"`, `"running"`, `"paused"`, `"completed"`, `"failed"`, `"killed"`
+- **PromptModeEnum**: `"arg"`, `"none"`
+- **ResumeStyleEnum**: `"flag"`, `"subcommand"`
 
 ## Memory Entities (TypeScript interfaces in `@repo/memory/src/types.ts`)
-- **MemoryEntry** — `id`, `title`, `content`, `tags[]`, timestamps + `lastAccessedAt`
-- **VectorIndex** — `model`, `entries` (Record of id→embedding vector)
-- **AgentState** — `agentId`, `data` (Record), `updatedAt`
+- **MemoryEntry** — `id`, `title`, `content`, `tags: string[]`, `createdAt`, `updatedAt`, `lastAccessedAt`
+- **VectorIndex** — `model: string`, `entries: Record<string, number[]>` (id→embedding vector)
+- **AgentState** — `agentId`, `data: Record<string, unknown>`, `updatedAt`
 - **TaskStep** — `id`, `title`, `status`, optional `description`
 
 ## Status Lifecycle (`@repo/shared/statuses`)
-- 8 statuses: `NEW → ASSIGNED → IN_PROGRESS → BLOCKED/REVIEW → MERGED → DONE`, or `FAILED`
-- Transitions enforced via `STATUS_TRANSITIONS` map and `isValidTransition(from, to)`
+8 statuses with enforced transitions via `STATUS_TRANSITIONS` map and `isValidTransition(from, to)`:
+- `NEW` → `[ASSIGNED, FAILED]`
+- `ASSIGNED` → `[IN_PROGRESS, BLOCKED, FAILED]`
+- `IN_PROGRESS` → `[BLOCKED, REVIEW, DONE, FAILED]`
+- `BLOCKED` → `[ASSIGNED, IN_PROGRESS, FAILED]`
+- `REVIEW` → `[MERGED, IN_PROGRESS, BLOCKED, FAILED]`
+- `MERGED` → `[DONE]`
+- `DONE` → `[]` (terminal)
+- `FAILED` → `[NEW]` (retry)
 
 ## Roles (`@repo/shared/roles`)
-- 8 roles: `FARM_MANAGER`, `FIELD_HAND`, `FIELD_SCOUT`, `GRAIN_ELEVATOR`, `BELL_RINGER`, `BARN_DOG`, `HEEL`, `BARN_CREW`
-- Each role has explicit allow/deny policies and capability flags (`canModifyCanonical`, `canCompleteTasks`, `canCreateArtifacts`)
+8 roles defined by `RoleIdEnum`: `FARM_MANAGER`, `FIELD_HAND`, `FIELD_SCOUT`, `GRAIN_ELEVATOR`, `BELL_RINGER`, `BARN_DOG`, `HEEL`, `BARN_CREW`. Each role has explicit allow/deny policies and capability flags (`canModifyCanonical`, `canCompleteTasks`, `canCreateArtifacts`). Role definitions live in `packages/core/src/roles/*.ts` and are registered via `registerAllRoles()`.
 
 ## Events (`@repo/shared/events`)
-- 22 event types across 7 categories: workorder, task, artifact, merge, cadence/system, agent, project
-- `FarmEventSchema` is a Zod discriminated union; `WireEventSchema` wraps it with metadata (id, timestamp, role, correlationId)
+22 event types defined in `EventTypeEnum`, grouped by category:
+- **workorder**: `workorder.created`
+- **task**: `task.created`, `task.assigned`, `task.status_changed`
+- **artifact**: `artifact.submitted`, `artifact.canonicalized`
+- **merge**: `merge.requested`, `merge.conflict`, `merge.completed`
+- **cadence/system**: `cadence.tick`, `scout.triage`, `dogs.maintenance`, `heel.watchdog_alert`, `decision.recorded`, `system.error`
+- **agent**: `agent.spawned`, `agent.connected`, `agent.heartbeat`, `agent.completed`, `agent.failed`, `agent.killed`
+- **project**: `project.changed`
 
-## Aggregate Read Model
-- **WorkOrderSnapshot** — combines WorkOrder + Task[] + Artifact[] + Decision[] + EventLog[] for full context
+`FarmEventSchema` is a Zod discriminated union on `type`. `WireEventSchema` wraps it with metadata: `id: uuid`, `timestamp: datetime`, `role: RoleIdEnum | null`, `correlationId: uuid | null`.
+
+## Prisma Models (`apps/backend/prisma/schema.prisma`)
+SQLite via Prisma. JSON fields stored as strings (not native JSON):
+- `WorkOrder.context` — stored as `String @default("{}")`, parsed via `JSON.parse()` in `PrismaAdapter.toWorkOrder()`
+- `Task.deps` — stored as `String @default("[]")`, parsed via `JSON.parse()` in `PrismaAdapter.toTask()`
+- `EventLog.payload` — stored as `String @default("{}")`, parsed via `JSON.parse()` in adapter helpers
+- Relations: `WorkOrder` → `Task[]`, `Artifact[]`, `Decision[]`, `EventLog[]`; `AgentSession` → `AgentMail[]` (sender/recipient)
+- Key indexes: `Task(workOrderId, status)`, `Artifact(workOrderId, type, linkedTaskId)`, `EventLog(workOrderId, action, timestamp)`, `AgentSession(status, roleId, workOrderId)`

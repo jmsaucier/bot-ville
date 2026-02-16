@@ -5,31 +5,82 @@ alwaysApply: true
 
 ## Monorepo Layout (Turborepo + pnpm workspaces)
 - `apps/backend/` — Fastify 5 API (port 4000), Prisma + SQLite, WebSocket streaming
-- `apps/desktop/` — Electron 35 + Vite + React 19 renderer (full mutation access)
-- `apps/web/` — Next.js 16 App Router dashboard (read-only, calls `/public/*` routes only)
-- `packages/core/` — `FarmEngine`, `EventBus`, `PolicyEngine`, roles, `MergeEngine`, `AgentSpawner`
-- `packages/shared/` — Zod schemas, types, event definitions, role enums, API contracts
-- `packages/memory/` — Embedding-backed knowledge store, agent state, task tracking, history
-- `packages/ui/` — shadcn/ui + Tailwind v4 components (Button, StatusBadge, EventCard, RoleAvatar)
-- `packages/eslint-config/`, `packages/typescript-config/` — shared tooling configs
+  - `src/server.ts` — entry point; initializes Prisma, `FarmEngine`, `EventBus`, `AgentSpawner`
+  - `src/persistence/prisma-adapter.ts` — `PrismaAdapter` (implements `PersistenceAdapter`)
+  - `src/routes/api.ts` — `registerApiRoutes()` — mutating `/api/*` routes
+  - `src/routes/public.ts` — `registerPublicRoutes()` — read-only `/public/*` routes
+  - `src/routes/ws.ts` — `registerWsRoute()` — WebSocket `/ws` endpoint
+  - `src/routes/agents.ts` — `registerAgentRoutes()` — agent management
+  - `src/routes/project.ts` — `registerProjectRoutes()` — project context
+  - `src/routes/demo.ts` — `registerDemoRoute()` — demo helpers
+- `apps/desktop/` — Electron 35 + Vite + React 19 renderer (full mutation access, Vite on port 5173)
+  - `src/main/main.ts` — Electron main process, IPC handlers, web app spawner
+  - `src/renderer/src/App.tsx` — React app with React Router DOM v7
+  - `src/renderer/src/hooks/useWebSocket.ts` — WebSocket hook with auto-reconnect
+  - `src/renderer/src/hooks/useApi.ts` — API client hook
+- `apps/web/` — Next.js 16 App Router dashboard (read-only, calls `/public/*` routes only, port 3000)
+  - `app/lib/api.ts` — `publicApi` client (wraps `fetch` to `/public/*` endpoints)
+  - `app/page.tsx`, `app/work-orders/[id]/page.tsx`, `app/events/page.tsx`, `app/agents/page.tsx`
+- `packages/core/` — pure engine logic (no I/O)
+  - `src/engine.ts` — `FarmEngine` class
+  - `src/event-bus.ts` — `EventBus` class (typed pub/sub)
+  - `src/persistence.ts` — `PersistenceAdapter` interface
+  - `src/policy-engine.ts` — `enforcePolicy()`, `canPerform()`, `PolicyViolationError`
+  - `src/roles/` — 8 role definitions + `registerAllRoles()`, `ALL_ROLES`
+  - `src/merge/merge-engine.ts` — `MergeEngine` class
+  - `src/merge/text-merge.ts` — `mergeTexts()`, `parseSections()`
+  - `src/merge/json-merge.ts` — `mergeJsonObjects()`, `mergeJsonStrings()`
+  - `src/agents/spawner.ts` — `AgentSpawner` class
+  - `src/agents/registry.ts` — `AgentRegistry` class
+  - `src/agents/worktree.ts` — `WorktreeManager` class
+  - `src/agents/instructions.ts` — `InstructionGenerator` class
+  - `src/testing/in-memory-adapter.ts` — `InMemoryAdapter` (for unit tests)
+- `packages/shared/` — Zod schemas, types, event definitions (zero internal deps)
+  - `src/models.ts` — `WorkOrderSchema`, `TaskSchema`, `ArtifactSchema`, `DecisionSchema`, `EventLogSchema`, `WorkOrderSnapshotSchema`
+  - `src/events.ts` — `EventTypeEnum`, `FarmEventSchema` (discriminated union), `WireEventSchema`
+  - `src/statuses.ts` — `StatusEnum`, `STATUS_TRANSITIONS`, `isValidTransition()`
+  - `src/roles.ts` — `RoleIdEnum`, `ROLE_DISPLAY_NAMES`, `ROLE_DESCRIPTIONS`
+  - `src/api.ts` — request/response Zod schemas for all API endpoints
+  - `src/agents.ts` — `AgentPresetSchema`, `AgentSessionSchema`, `AgentConfigSchema`, `AgentMailSchema`
+- `packages/memory/` — embedding-backed knowledge store (file-based JSON in `.bot-ville/`)
+  - `src/knowledge.ts` — `KnowledgeBase`, `src/scoring.ts` — `scoreMemories()`
+  - `src/embedder.ts` — `Embedder` interface, `cosineSimilarity()`
+  - `src/openai-embedder.ts` — `OpenAIEmbedder`
+  - `src/agent-state.ts` — `AgentStateManager`, `src/tasks.ts` — `TaskManager`, `src/history.ts` — `HistoryManager`
+- `packages/ui/` — shadcn/ui + Tailwind v4 components (`button`, `status-badge`, `event-card`, `role-avatar`, `card`, `stat-card`, `code`)
+- `packages/eslint-config/` — flat ESLint configs (`base.js`, `react-internal.js`, `next.js`)
+- `packages/typescript-config/` — shared tsconfig bases (`base.json`, `nextjs.json`, `react-library.json`)
+
+## Subpath Export Maps
+- `@repo/shared`: `.` → `src/index.ts`, `./statuses`, `./models`, `./events`, `./roles`, `./api`, `./agents`
+- `@repo/core`: `.` → `src/index.ts`, `./event-bus`, `./persistence`, `./policy-engine`, `./roles`, `./merge`, `./agents`
+- `@repo/memory`: `.` → `src/index.ts`, `./openai-embedder`
+- `@repo/ui`: `./*` → `./src/*.tsx`, `./lib/*` → `./src/lib/*.ts` (wildcard — import as `@repo/ui/button`, `@repo/ui/lib/utils`)
 
 ## Module Boundaries
 - `@repo/core` is **pure logic** — no I/O; depends only on `@repo/shared` types
-- `@repo/core` takes a `PersistenceAdapter` interface; backend provides `PrismaAdapter`
-- `@repo/shared` has **zero internal deps** — leaf package for schemas and types
+- `@repo/core` takes a `PersistenceAdapter` interface; backend provides `PrismaAdapter` in `apps/backend/src/persistence/prisma-adapter.ts`
+- `@repo/shared` has **zero internal deps** — leaf package for schemas and types only
 - `@repo/memory` is **file-based** (JSON in `.bot-ville/`), independent of SQLite
-- `@repo/ui` exports via wildcard (`@repo/ui/button`); all components use `"use client"`
+- `@repo/ui` exports via wildcard; all components use `"use client"` directive
 
 ## Communication Patterns
 - **REST API**: backend exposes `/api/*` (mutating, desktop) and `/public/*` (read-only, web)
-- **WebSocket** (`/ws`): `EventBus` broadcasts all events to connected clients with optional filters
-- **IPC**: Electron main↔renderer via `contextBridge` preload (directory picker, web dashboard info)
-- **Event-driven engine**: every `FarmEngine` action emits typed events; persisted as `EventLog` rows
+- **WebSocket** (`/ws`): `EventBus` broadcasts all events; clients filter via `{ type: "subscribe", filters: {...} }`
+- **IPC**: Electron main↔renderer via `contextBridge` preload (`openDirectoryDialog()`, `getWebDashboardInfo()`, `ipc.send/on/invoke`)
+- **Event-driven engine**: every `FarmEngine` action emits typed `FarmEvent`s; persisted as `EventLog` rows via `PersistenceAdapter`
 
-## Key Patterns
-- Subpath exports: `@repo/shared/events`, `@repo/core/roles`, `@repo/memory/openai-embedder`
-- Zod schemas define models; types are inferred (`z.infer<typeof Schema>`)
-- Policy enforcement via `enforcePolicy(action, roleId)` — throws `PolicyViolationError`
-- Merge engine auto-detects JSON vs text; merges by key (JSON) or heading (Markdown)
-- Agent isolation via git worktrees (`WorktreeManager`) per spawned session
-- `InMemoryAdapter` in `@repo/core/src/testing/` for unit tests (no DB needed)
+## Backend Initialization Order (server.ts)
+1. `PrismaClient` connect
+2. `registerAllRoles()` — populates role registry
+3. `new EventBus()` + `new PrismaAdapter(prisma)` + `new FarmEngine(adapter, eventBus)`
+4. `new AgentRegistry()` + `new AgentSpawner(agentRegistry, eventBus)`
+5. Register Fastify plugins: `@fastify/cors`, `@fastify/websocket`
+6. Register routes: `registerApiRoutes()`, `registerPublicRoutes()`, `registerWsRoute()`, `registerDemoRoute()`, `registerAgentRoutes()`, `registerProjectRoutes()`
+7. `app.listen({ port: 4000, host: "0.0.0.0" })`
+
+## Testing Infrastructure
+- **Framework**: Vitest
+- **Adapter**: `InMemoryAdapter` from `packages/core/src/testing/in-memory-adapter.ts` (no DB needed)
+- **Setup pattern**: `registerAllRoles()` + `new EventBus()` + `new InMemoryAdapter()` + `new FarmEngine(adapter, eventBus)` in `beforeEach`
+- **Event capture**: `eventBus.onAny((event) => emittedEvents.push(event))` to collect events for assertions

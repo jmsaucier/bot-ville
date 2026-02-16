@@ -1,5 +1,54 @@
 ---
-applyTo: "**"
+alwaysApply: true
 ---
-
 # Commands & Scripts
+
+## Root Scripts (run from repo root)
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start backend (port 4000) + web (port 3000) in dev mode |
+| `pnpm desktop` | Start backend (port 4000) + desktop (Vite on port 5173) in dev mode |
+| `pnpm build` | Build all apps and packages (outputs to `.next/` and `dist/`) |
+| `pnpm lint` | Lint all apps and packages with ESLint (flat config) |
+| `pnpm format` | Format all `.ts`, `.tsx`, `.md` files with Prettier (defaults) |
+| `pnpm check-types` | Type-check all apps and packages |
+| `pnpm test` | Run all Vitest tests |
+| `pnpm db:push` | Push Prisma schema to SQLite (`apps/backend/data/farm.db`) |
+| `pnpm db:studio` | Open Prisma Studio for DB inspection |
+
+## Turbo Filters
+Run a specific app or package in isolation:
+- `pnpm turbo dev --filter=backend` — start only the backend
+- `pnpm turbo dev --filter=web` — start only the web dashboard
+- `pnpm turbo dev --filter=desktop` — start only the desktop app
+- `pnpm turbo test --filter=@repo/core` — test only the core package
+- `pnpm turbo test --filter=@repo/memory` — test only the memory package
+- `pnpm turbo build --filter=@repo/shared` — build only the shared package
+- `pnpm turbo lint --filter=backend` — lint only the backend
+
+## Prisma Commands
+Run from `apps/backend/`:
+- `npx prisma db push` — push schema to SQLite (creates `data/farm.db` if missing)
+- `npx prisma studio` — open Prisma Studio GUI
+- `npx prisma generate` — regenerate Prisma client after schema changes
+
+## Dev Server Ports
+| Service | Port | URL |
+|---|---|---|
+| Backend API | 4000 | `http://localhost:4000` |
+| Web Dashboard | 3000 | `http://localhost:3000` |
+| Desktop Vite Dev | 5173 | `http://localhost:5173` |
+| WebSocket | 4000 | `ws://localhost:4000/ws` |
+
+## Turbo Pipeline (`turbo.json`)
+- `build` — depends on `^build` (builds deps first); inputs include `.env*`; outputs: `.next/**`, `dist/**`
+- `lint` — depends on `^lint`
+- `check-types` — depends on `^check-types`
+- `dev` — persistent, no cache
+- `test` — depends on `^build`, no cache
+- `package` — depends on `build`; outputs: `release/**`
+
+## Notes
+- `pnpm dev` starts both backend + web in parallel via Turbo (`--filter=backend --filter=web`)
+- `pnpm desktop` starts both backend + desktop in parallel via Turbo (`--filter=backend --filter=desktop`)
+- The Electron main process (`apps/desktop/src/main/main.ts`) also spawns the Next.js web app as a child process on port 3000

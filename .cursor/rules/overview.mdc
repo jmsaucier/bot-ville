@@ -5,26 +5,35 @@ alwaysApply: true
 
 ## Domain
 - Farm-themed multi-agent workspace manager (inspired by Gas Town)
-- Agents (LLM-backed CLI tools) are assigned farm roles and collaborate on work orders
+- Agents (LLM-backed CLI tools like Cursor, Claude, Codex) are assigned farm roles and collaborate on work orders
 - A work order decomposes into tasks; agents produce draft artifacts that merge into canonical output
 
 ## Key Concepts
-- **Work Order** — top-level goal; contains tasks, artifacts, decisions, events
-- **Task** — unit of work; has status lifecycle (NEW→ASSIGNED→IN_PROGRESS→DONE, etc.)
-- **Artifact** — content produced by agents; drafts merge into a single canonical artifact
+- **Work Order** — top-level goal; contains tasks, artifacts, decisions, events; statuses: `NEW` → `DONE`
+- **Task** — unit of work with status lifecycle: `NEW → ASSIGNED → IN_PROGRESS → REVIEW → MERGED → DONE` (or `BLOCKED` / `FAILED` at any point)
+- **Artifact** — content produced by agents; drafts (`canonical: false`) merge into a single canonical artifact (`canonical: true`) via `MergeEngine`
 - **Decision** — recorded rationale tied to a work order and optional task
-- **Role** — one of 8 farm roles (Farm Manager, Field Hand, Field Scout, Grain Elevator, Bell Ringer, Barn Dog, Heel, Barn Crew) with policy-enforced permissions
-- **Agent Session** — a spawned CLI agent (Cursor, Claude, Codex, etc.) bound to a role + task
-- **Memory** — embedding-backed knowledge store with semantic recall + time-decay scoring
+- **Role** — one of 8 farm roles identified by `RoleIdEnum` values:
+  - `FARM_MANAGER` — orchestrates work orders and assigns tasks
+  - `FIELD_HAND` — executes tasks and submits draft artifacts
+  - `FIELD_SCOUT` — triages blocked tasks and unblocks dependencies
+  - `GRAIN_ELEVATOR` — merges draft artifacts into canonical output
+  - `BELL_RINGER` — drives cadence ticks
+  - `BARN_DOG` — runs maintenance actions
+  - `HEEL` — watchdog alerts for stale or stuck work
+  - `BARN_CREW` — general-purpose support
+- **Agent Session** — a spawned CLI agent process bound to a `roleId` + optional `taskId`; tracked by `pid`, `workingDirectory`, and `status` (`spawning | running | paused | completed | failed | killed`)
+- **Memory** — embedding-backed knowledge store; recall scored by: `score = (0.7 * cosineSimilarity) + (0.3 * recencyScore)` where recency halves every 24 hours
 
 ## User Types
-- **Operator** — uses the Desktop console (Electron) to create work orders, assign tasks, spawn agents
-- **Observer** — views the read-only Next.js web dashboard for live event streams and status
+- **Operator** — uses the Desktop console (Electron, port 5173 in dev) to create work orders, assign tasks, spawn agents via `/api/*` routes
+- **Observer** — views the read-only Next.js web dashboard (port 3000) for live event streams and status via `/public/*` routes
 
 ## Primary Workflows
 1. Operator creates a work order → engine emits `workorder.created`
-2. Farm Manager assigns tasks to roles → agents are spawned into git worktrees
-3. Field Hands work tasks and submit draft artifacts
-4. Grain Elevator merges drafts into canonical output (text or JSON merge)
-5. Engine tick runs cadence: Bell Ringer ticks, Scout triages, Dogs maintain, Heel alerts
-6. All events stream via WebSocket to desktop + web dashboards
+2. `FARM_MANAGER` assigns tasks to roles → `task.assigned` + `task.status_changed` events
+3. `AgentSpawner` spawns agents into isolated git worktrees → `agent.spawned` event
+4. `FIELD_HAND` agents work tasks and submit draft artifacts → `artifact.submitted` event
+5. `GRAIN_ELEVATOR` merges drafts into canonical output → `merge.requested` → `merge.completed` (or `merge.conflict`)
+6. Engine `tick()` runs cadence: `cadence.tick`, `scout.triage`, `dogs.maintenance`, `heel.watchdog_alert`
+7. All 22 event types stream via WebSocket (`/ws`) to desktop + web dashboards
