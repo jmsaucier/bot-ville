@@ -190,6 +190,8 @@ export const AgentFailedPayload = z.object({
   roleId: RoleIdEnum,
   error: z.string(),
   exitCode: z.number().int().nullable(),
+  stdout: z.string().optional(),
+  stderr: z.string().optional(),
 });
 
 export const AgentKilledPayload = z.object({

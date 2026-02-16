@@ -1,0 +1,10 @@
+{
+  "configurations": [
+    {
+      "name": "Launch Desktop",
+      "type": "node-terminal",
+      "command": "pnpm run desktop",
+      "request": "launch"
+    }
+  ]
+}

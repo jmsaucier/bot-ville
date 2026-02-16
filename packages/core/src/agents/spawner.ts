@@ -50,11 +50,25 @@ export interface WorktreeConfig {
   baseBranch?: string;
 }
 
+const MAX_OUTPUT_BYTES = 50_000;
+
+function appendToBuffer(existing: string, chunk: string): string {
+  const combined = existing + chunk;
+  if (combined.length > MAX_OUTPUT_BYTES) {
+    return combined.slice(combined.length - MAX_OUTPUT_BYTES);
+  }
+  return combined;
+}
+
 interface TrackedProcess {
   session: AgentSession;
   process: ChildProcess | null;
   /** The worktree branch name, if this session uses a worktree. */
   worktreeBranch: string | null;
+  /** Buffered stdout output (tail, capped at MAX_OUTPUT_BYTES). */
+  stdoutBuffer: string;
+  /** Buffered stderr output (tail, capped at MAX_OUTPUT_BYTES). */
+  stderrBuffer: string;
 }
 
 /**
@@ -209,7 +223,13 @@ export class AgentSpawner {
     } catch (err) {
       session.status = "failed";
       session.completedAt = now();
-      this.sessions.set(sessionId, { session, process: null, worktreeBranch });
+      this.sessions.set(sessionId, {
+        session,
+        process: null,
+        worktreeBranch,
+        stdoutBuffer: "",
+        stderrBuffer: "",
+      });
 
       this.emitEvent({
         type: "agent.failed",
@@ -233,7 +253,22 @@ export class AgentSpawner {
     session.pid = child.pid ?? null;
     session.status = "running";
 
-    this.sessions.set(sessionId, { session, process: child, worktreeBranch });
+    const tracked: TrackedProcess = {
+      session,
+      process: child,
+      worktreeBranch,
+      stdoutBuffer: "",
+      stderrBuffer: "",
+    };
+    this.sessions.set(sessionId, tracked);
+
+    // Buffer stdout/stderr so output is available on failure
+    child.stdout?.on("data", (data: Buffer) => {
+      tracked.stdoutBuffer = appendToBuffer(tracked.stdoutBuffer, data.toString());
+    });
+    child.stderr?.on("data", (data: Buffer) => {
+      tracked.stderrBuffer = appendToBuffer(tracked.stderrBuffer, data.toString());
+    });
 
     // Emit spawned event
     this.emitEvent({
@@ -283,6 +318,8 @@ export class AgentSpawner {
               ? `Process killed with signal ${signal}`
               : `Process exited with code ${code}`,
             exitCode: code,
+            stdout: tracked.stdoutBuffer || undefined,
+            stderr: tracked.stderrBuffer || undefined,
           },
         });
 
@@ -309,6 +346,8 @@ export class AgentSpawner {
           roleId: options.roleId,
           error: err.message,
           exitCode: null,
+          stdout: tracked.stdoutBuffer || undefined,
+          stderr: tracked.stderrBuffer || undefined,
         },
       });
 
