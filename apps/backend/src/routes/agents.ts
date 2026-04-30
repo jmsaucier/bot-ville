@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { PrismaClient } from "@prisma/client";
-import { AgentSpawner, AgentRegistry } from "@repo/core";
+import { AgentSpawner, AgentRegistry } from "@bot-ville/core";
 import {
   SpawnAgentRequest,
   AgentHeartbeatRequest,
@@ -10,7 +10,7 @@ import {
   type AgentSessionStatus,
   type AgentMail,
   type RoleId,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 
 /**
  * Agent management API routes.

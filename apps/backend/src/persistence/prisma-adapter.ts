@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import type { PersistenceAdapter, EventFilters } from "@repo/core";
+import type { PersistenceAdapter, EventFilters } from "@bot-ville/core";
 import type {
   WorkOrder,
   Task,
@@ -8,7 +8,7 @@ import type {
   EventLog,
   Status,
   RoleId,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 
 /**
  * Implements PersistenceAdapter using Prisma + SQLite.

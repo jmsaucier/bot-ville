@@ -21,9 +21,9 @@ Run a specific app or package in isolation:
 - `pnpm turbo dev --filter=backend` — start only the backend
 - `pnpm turbo dev --filter=web` — start only the web dashboard
 - `pnpm turbo dev --filter=desktop` — start only the desktop app
-- `pnpm turbo test --filter=@repo/core` — test only the core package
-- `pnpm turbo test --filter=@repo/memory` — test only the memory package
-- `pnpm turbo build --filter=@repo/shared` — build only the shared package
+- `pnpm turbo test --filter=@bot-ville/core` — test only the core package
+- `pnpm turbo test --filter=@bot-ville/memory` — test only the memory package
+- `pnpm turbo build --filter=@bot-ville/shared` — build only the shared package
 - `pnpm turbo lint --filter=backend` — lint only the backend
 
 ## Prisma Commands

@@ -1,9 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { PrismaClient } from "@prisma/client";
-import type { FarmEngine } from "@repo/core";
+import type { FarmEngine } from "@bot-ville/core";
 import type { PrismaAdapter } from "../persistence/prisma-adapter.js";
-import { EventQueryParams } from "@repo/shared";
-import type { AgentSession, AgentSessionStatus, RoleId } from "@repo/shared";
+import { EventQueryParams } from "@bot-ville/shared";
+import type { AgentSession, AgentSessionStatus, RoleId } from "@bot-ville/shared";
 
 /**
  * Read-only routes under /public/*

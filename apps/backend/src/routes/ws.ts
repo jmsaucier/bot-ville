@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import type { EventBus } from "@repo/core";
-import type { FarmEvent, RoleId, EventType } from "@repo/shared";
+import type { EventBus } from "@bot-ville/core";
+import type { FarmEvent, RoleId, EventType } from "@bot-ville/shared";
 import type { WebSocket } from "ws";
 
 interface SubscriptionFilters {

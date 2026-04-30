@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { cn } from "@repo/ui/lib/utils";
+import { cn } from "@bot-ville/ui/lib/utils";
 
 export function EventCard({
   eventType,

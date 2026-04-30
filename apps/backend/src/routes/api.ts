@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { FarmEngine } from "@repo/core";
+import type { FarmEngine } from "@bot-ville/core";
 import type { PrismaAdapter } from "../persistence/prisma-adapter.js";
 import {
   CreateWorkOrderRequest,
@@ -7,7 +7,7 @@ import {
   SubmitArtifactRequest,
   RequestMergeRequest,
   EventQueryParams,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 
 /**
  * Mutating API routes (POST) + mirrored read routes (GET) under /api/*

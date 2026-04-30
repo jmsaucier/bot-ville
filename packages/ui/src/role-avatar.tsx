@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@repo/ui/lib/utils";
+import { cn } from "@bot-ville/ui/lib/utils";
 
 const ROLE_ICONS: Record<string, string> = {
   FARM_MANAGER: "FM",

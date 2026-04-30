@@ -1,4 +1,4 @@
-import type { Artifact, EventLog, FarmEvent } from "@repo/shared";
+import type { Artifact, EventLog, FarmEvent } from "@bot-ville/shared";
 import type { PersistenceAdapter } from "../persistence.js";
 import type { EventBus } from "../event-bus.js";
 import { mergeTexts } from "./text-merge.js";

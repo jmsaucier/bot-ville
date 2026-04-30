@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { FarmEngine } from "@repo/core";
+import type { FarmEngine } from "@bot-ville/core";
 
 /**
  * Demo endpoint that runs the scripted end-to-end scenario.

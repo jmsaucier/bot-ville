@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { FarmEvent } from "@repo/shared";
+import type { FarmEvent } from "@bot-ville/shared";
 
 interface WsMessage {
   id: string;

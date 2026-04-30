@@ -1,5 +1,5 @@
-import type { AgentPreset } from "@repo/shared";
-import { AgentPresetSchema } from "@repo/shared";
+import type { AgentPreset } from "@bot-ville/shared";
+import { AgentPresetSchema } from "@bot-ville/shared";
 import { readFile } from "node:fs/promises";
 
 /**

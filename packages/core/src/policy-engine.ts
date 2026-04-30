@@ -1,4 +1,4 @@
-import type { RoleId } from "@repo/shared";
+import type { RoleId } from "@bot-ville/shared";
 
 // ─── Action Types ────────────────────────────────────────────────────────────
 

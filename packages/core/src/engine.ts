@@ -9,8 +9,8 @@ import type {
   WorkOrderSnapshot,
   ArtifactDraftInputType,
   FarmEvent,
-} from "@repo/shared";
-import { isValidTransition } from "@repo/shared";
+} from "@bot-ville/shared";
+import { isValidTransition } from "@bot-ville/shared";
 import { EventBus } from "./event-bus.js";
 import type { PersistenceAdapter } from "./persistence.js";
 import { enforcePolicy } from "./policy-engine.js";

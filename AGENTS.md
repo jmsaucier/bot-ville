@@ -5,8 +5,8 @@
 **bot-ville** is a farm-themed multi-agent workspace manager inspired by [Gas Town](https://github.com/steveyegge/gastown). Features:
 
 - **Farm-themed role system** with 8 agent roles (Farm Manager, Field Hand, Field Scout, Grain Elevator, Bell Ringer, Barn Dog, Heel, Barn Crew), each with explicit policy enforcement.
-- **First-party memory system** (`@repo/memory`): embedding-backed recall using semantic similarity + time-decay scoring.
-- **Core orchestration engine** (`@repo/core`): role registry, policy enforcement, event bus, merge logic.
+- **First-party memory system** (`@bot-ville/memory`): embedding-backed recall using semantic similarity + time-decay scoring.
+- **Core orchestration engine** (`@bot-ville/core`): role registry, policy enforcement, event bus, merge logic.
 - **Full event streaming**: every action emits events persisted to SQLite and broadcast via WebSocket.
 - **Desktop console** (Electron + Vite + React) for operator interaction.
 - **Read-only web dashboard** (Next.js) for observation.
@@ -22,12 +22,12 @@ bot-ville/
     desktop/          # Electron + Vite + React (Farm Ops Console)
     web/              # Next.js read-only dashboard (port 3000)
   packages/
-    core/             # @repo/core -- engine, roles, policies, event bus, merge
-    shared/           # @repo/shared -- Zod schemas, types, event definitions
-    memory/           # @repo/memory -- embedding-backed memory system
-    ui/               # @repo/ui -- shared React components (shadcn/ui + Tailwind v4)
-    eslint-config/    # @repo/eslint-config -- shared ESLint flat configs
-    typescript-config/ # @repo/typescript-config -- shared tsconfig bases
+    core/             # @bot-ville/core -- engine, roles, policies, event bus, merge
+    shared/           # @bot-ville/shared -- Zod schemas, types, event definitions
+    memory/           # @bot-ville/memory -- embedding-backed memory system
+    ui/               # @bot-ville/ui -- shared React components (shadcn/ui + Tailwind v4)
+    eslint-config/    # @bot-ville/eslint-config -- shared ESLint flat configs
+    typescript-config/ # @bot-ville/typescript-config -- shared tsconfig bases
 ```
 
 ## Tech Stack
@@ -65,29 +65,29 @@ Filter to a specific app or package with Turbo:
 
 ```sh
 pnpm turbo dev --filter=backend
-pnpm turbo test --filter=@repo/core
+pnpm turbo test --filter=@bot-ville/core
 ```
 
 ## Coding Conventions
 
-- **TypeScript strict mode** is enabled everywhere via `@repo/typescript-config/base.json`.
+- **TypeScript strict mode** is enabled everywhere via `@bot-ville/typescript-config/base.json`.
 - **ESM modules** (`"type": "module"`) in all apps and packages.
 - **Inline prop types** -- define component props as inline object types, not in separate `types` files.
 - **`"use client"` directive** for client-side React components in shared packages.
 - **Flat ESLint config** -- all packages use the flat config format (`eslint.config.mjs`).
 - **Prettier** for formatting -- no `.prettierrc` file; default config is used.
-- **Zod schemas** for all data models, events, and API payloads (defined in `@repo/shared`).
+- **Zod schemas** for all data models, events, and API payloads (defined in `@bot-ville/shared`).
 
 ## Package Conventions
 
-- All internal packages use the `@repo/*` scope.
+- All internal packages use the `@bot-ville/*` scope.
 - Cross-package dependencies use `workspace:*` protocol.
-- `@repo/ui` exports components via wildcard: `@repo/ui/button`, `@repo/ui/status-badge`, etc.
-- `@repo/shared` exports via subpath: `@repo/shared`, `@repo/shared/events`, `@repo/shared/roles`, etc.
-- `@repo/core` exports via subpath: `@repo/core`, `@repo/core/event-bus`, `@repo/core/roles`, etc.
-- `@repo/memory` exports via subpath: `@repo/memory` or `@repo/memory/openai-embedder`.
+- `@bot-ville/ui` exports components via wildcard: `@bot-ville/ui/button`, `@bot-ville/ui/status-badge`, etc.
+- `@bot-ville/shared` exports via subpath: `@bot-ville/shared`, `@bot-ville/shared/events`, `@bot-ville/shared/roles`, etc.
+- `@bot-ville/core` exports via subpath: `@bot-ville/core`, `@bot-ville/core/event-bus`, `@bot-ville/core/roles`, etc.
+- `@bot-ville/memory` exports via subpath: `@bot-ville/memory` or `@bot-ville/memory/openai-embedder`.
 
-## Core Engine (`@repo/core`)
+## Core Engine (`@bot-ville/core`)
 
 The engine provides:
 - `FarmEngine` class with: `createWorkOrder()`, `tick()`, `assignTask()`, `submitArtifact()`, `requestMerge()`, `getSnapshot()`
@@ -96,7 +96,7 @@ The engine provides:
 - Role registry with 8 roles and policy enforcement
 - Merge engine (text + JSON) with conflict detection
 
-## Memory System (`@repo/memory`)
+## Memory System (`@bot-ville/memory`)
 
 The memory package provides an embedding-backed knowledge store. Memories are scored using:
 

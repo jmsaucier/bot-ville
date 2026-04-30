@@ -4,7 +4,7 @@ import type {
   AgentSessionStatus,
   RoleId,
   FarmEvent,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 import { EventBus } from "../event-bus.js";
 import { AgentRegistry } from "./registry.js";
 import { WorktreeManager } from "./worktree.js";

@@ -13,14 +13,14 @@
     "package": "electron-builder --config electron-builder.yml"
   },
   "dependencies": {
-    "@repo/shared": "workspace:*",
+    "@bot-ville/shared": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.6.1"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@bot-ville/eslint-config": "workspace:*",
+    "@bot-ville/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",

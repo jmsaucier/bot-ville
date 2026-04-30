@@ -1,4 +1,4 @@
-import type { EventType, FarmEvent } from "@repo/shared";
+import type { EventType, FarmEvent } from "@bot-ville/shared";
 
 type EventHandler = (event: FarmEvent) => void;
 

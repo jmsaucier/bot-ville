@@ -5,7 +5,7 @@ import { registerAllRoles } from "../src/roles/index.js";
 import { InMemoryAdapter } from "../src/testing/in-memory-adapter.js";
 import { mergeTexts } from "../src/merge/text-merge.js";
 import { mergeJsonObjects } from "../src/merge/json-merge.js";
-import type { FarmEvent } from "@repo/shared";
+import type { FarmEvent } from "@bot-ville/shared";
 
 describe("Text Merge", () => {
   it("should merge non-conflicting sections", () => {

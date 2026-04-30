@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EventCard } from "../components/EventCard.js";
-import type { FarmEvent, EventType } from "@repo/shared";
+import type { FarmEvent, EventType } from "@bot-ville/shared";
 
 interface WsMessage {
   id: string;

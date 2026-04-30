@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
-import type { EventBus, AgentSpawner } from "@repo/core";
+import type { EventBus, AgentSpawner } from "@bot-ville/core";
 
 // ─── Project Context ────────────────────────────────────────────────────────
 

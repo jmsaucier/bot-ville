@@ -11,7 +11,7 @@ alwaysApply: false
 - Infer types from Zod schemas: `type WorkOrder = z.infer<typeof WorkOrderSchema>` — avoid duplicating types manually
 
 ## Zod
-- Define all schemas in `@repo/shared` (`packages/shared/src/`): models in `models.ts`, events in `events.ts`, API contracts in `api.ts`, agent schemas in `agents.ts`
+- Define all schemas in `@bot-ville/shared` (`packages/shared/src/`): models in `models.ts`, events in `events.ts`, API contracts in `api.ts`, agent schemas in `agents.ts`
 - Infer TypeScript types with `z.infer<typeof Schema>` — schemas are the single source of truth
 - Parse at API boundaries with `.parse()`: `CreateWorkOrderRequest.parse(request.body)` in route handlers
 - Use discriminated unions for polymorphic data: `FarmEventSchema` discriminates on `type` field
@@ -32,11 +32,11 @@ alwaysApply: false
 - Define indexes on frequently queried columns: `@@index([workOrderId])`, `@@index([status])`, `@@index([timestamp])`
 
 ## React Components
-- All `@repo/ui` components (`packages/ui/src/*.tsx`) must start with `"use client"` directive
+- All `@bot-ville/ui` components (`packages/ui/src/*.tsx`) must start with `"use client"` directive
 - Use `cva` from `class-variance-authority` for variant-based styling (see `packages/ui/src/button.tsx`)
-- Use `cn()` from `@repo/ui/lib/utils` (wraps `clsx` + `tailwind-merge`) for className merging
+- Use `cn()` from `@bot-ville/ui/lib/utils` (wraps `clsx` + `tailwind-merge`) for className merging
 - Define component props as inline object types: `function Button({ className, variant, size, ...props }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>)`
-- Use `@base-ui/react` primitives only inside `@repo/ui` — app code imports from `@repo/ui/*`
+- Use `@base-ui/react` primitives only inside `@bot-ville/ui` — app code imports from `@bot-ville/ui/*`
 
 ## Tailwind CSS v4
 - CSS-first configuration — no `tailwind.config.js` / `tailwind.config.ts`
@@ -60,13 +60,13 @@ alwaysApply: false
 
 ## Imports & Dependencies
 - Internal packages use `workspace:*` protocol in `package.json`
-- Use subpath imports for `@repo/shared`, `@repo/core`, `@repo/memory`: `import { StatusEnum } from "@repo/shared/statuses"`
-- Use wildcard imports for `@repo/ui`: `import { Button } from "@repo/ui/button"`
-- Use `@repo/ui/lib/utils` for the `cn()` utility
+- Use subpath imports for `@bot-ville/shared`, `@bot-ville/core`, `@bot-ville/memory`: `import { StatusEnum } from "@bot-ville/shared/statuses"`
+- Use wildcard imports for `@bot-ville/ui`: `import { Button } from "@bot-ville/ui/button"`
+- Use `@bot-ville/ui/lib/utils` for the `cn()` utility
 
 ## ESM
 - All packages are `"type": "module"` — no CommonJS anywhere
 - Use `import` / `export` exclusively
 - Use `import.meta.url` for path resolution: `const __filename = fileURLToPath(import.meta.url)`
-- ESLint uses flat config format: all `eslint.config.mjs` files import `config` from `@repo/eslint-config/base.js`
+- ESLint uses flat config format: all `eslint.config.mjs` files import `config` from `@bot-ville/eslint-config/base.js`
 - `eslint-plugin-only-warn` is enabled globally — ESLint errors are treated as warnings

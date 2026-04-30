@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import type { AgentSpawner, GitMergeEngine } from "@repo/core";
+import type { AgentSpawner, GitMergeEngine } from "@bot-ville/core";
 import {
   CreateGitMergeRequestInput,
   ExecuteGitMergeRequestInput,
   type GitMergeRequestStatus,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 
 /**
  * Git merge request API routes.

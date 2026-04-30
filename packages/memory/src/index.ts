@@ -1,11 +1,11 @@
 /**
- * @repo/memory — first-party, embedding-backed memory system for bot-ville.
+ * @bot-ville/memory — first-party, embedding-backed memory system for bot-ville.
  *
  * Usage:
  *
  * ```ts
- * import { createMemory } from "@repo/memory";
- * import { OpenAIEmbedder } from "@repo/memory/openai-embedder";
+ * import { createMemory } from "@bot-ville/memory";
+ * import { OpenAIEmbedder } from "@bot-ville/memory/openai-embedder";
  *
  * const mem = createMemory({
  *   rootDir: ".bot-ville",

@@ -52,17 +52,17 @@ alwaysApply: true
 - `packages/typescript-config/` — shared tsconfig bases (`base.json`, `nextjs.json`, `react-library.json`)
 
 ## Subpath Export Maps
-- `@repo/shared`: `.` → `src/index.ts`, `./statuses`, `./models`, `./events`, `./roles`, `./api`, `./agents`
-- `@repo/core`: `.` → `src/index.ts`, `./event-bus`, `./persistence`, `./policy-engine`, `./roles`, `./merge`, `./agents`
-- `@repo/memory`: `.` → `src/index.ts`, `./openai-embedder`
-- `@repo/ui`: `./*` → `./src/*.tsx`, `./lib/*` → `./src/lib/*.ts` (wildcard — import as `@repo/ui/button`, `@repo/ui/lib/utils`)
+- `@bot-ville/shared`: `.` → `src/index.ts`, `./statuses`, `./models`, `./events`, `./roles`, `./api`, `./agents`
+- `@bot-ville/core`: `.` → `src/index.ts`, `./event-bus`, `./persistence`, `./policy-engine`, `./roles`, `./merge`, `./agents`
+- `@bot-ville/memory`: `.` → `src/index.ts`, `./openai-embedder`
+- `@bot-ville/ui`: `./*` → `./src/*.tsx`, `./lib/*` → `./src/lib/*.ts` (wildcard — import as `@bot-ville/ui/button`, `@bot-ville/ui/lib/utils`)
 
 ## Module Boundaries
-- `@repo/core` is **pure logic** — no I/O; depends only on `@repo/shared` types
-- `@repo/core` takes a `PersistenceAdapter` interface; backend provides `PrismaAdapter` in `apps/backend/src/persistence/prisma-adapter.ts`
-- `@repo/shared` has **zero internal deps** — leaf package for schemas and types only
-- `@repo/memory` is **file-based** (JSON in `.bot-ville/`), independent of SQLite
-- `@repo/ui` exports via wildcard; all components use `"use client"` directive
+- `@bot-ville/core` is **pure logic** — no I/O; depends only on `@bot-ville/shared` types
+- `@bot-ville/core` takes a `PersistenceAdapter` interface; backend provides `PrismaAdapter` in `apps/backend/src/persistence/prisma-adapter.ts`
+- `@bot-ville/shared` has **zero internal deps** — leaf package for schemas and types only
+- `@bot-ville/memory` is **file-based** (JSON in `.bot-ville/`), independent of SQLite
+- `@bot-ville/ui` exports via wildcard; all components use `"use client"` directive
 
 ## Communication Patterns
 - **REST API**: backend exposes `/api/*` (mutating, desktop) and `/public/*` (read-only, web)

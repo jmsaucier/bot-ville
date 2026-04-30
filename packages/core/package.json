@@ -1,5 +1,5 @@
 {
-  "name": "@repo/core",
+  "name": "@bot-ville/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,11 +18,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@repo/shared": "workspace:*"
+    "@bot-ville/shared": "workspace:*"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@bot-ville/eslint-config": "workspace:*",
+    "@bot-ville/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "typescript": "5.9.2",

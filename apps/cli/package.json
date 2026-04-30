@@ -1,5 +1,5 @@
 {
-  "name": "@repo/cli",
+  "name": "@bot-ville/cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,12 +14,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/shared": "workspace:*",
+    "@bot-ville/shared": "workspace:*",
     "commander": "^13.1.0"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@bot-ville/eslint-config": "workspace:*",
+    "@bot-ville/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "tsx": "^4.19.4",

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { FarmEvent } from "@repo/shared";
+import type { FarmEvent } from "@bot-ville/shared";
 
 interface WsMessage {
   id: string;

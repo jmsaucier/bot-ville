@@ -6,7 +6,7 @@ import type {
   EventLog,
   Status,
   RoleId,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 
 // ─── Event Filters ───────────────────────────────────────────────────────────
 

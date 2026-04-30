@@ -1,4 +1,4 @@
-import { ROLE_DISPLAY_NAMES, ROLE_DESCRIPTIONS, type RoleId } from "@repo/shared";
+import { ROLE_DISPLAY_NAMES, ROLE_DESCRIPTIONS, type RoleId } from "@bot-ville/shared";
 
 const ROLES: RoleId[] = [
   "FARM_MANAGER",

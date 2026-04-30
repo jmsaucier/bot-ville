@@ -27,7 +27,7 @@ A farm-themed multi-agent workspace manager inspired by [Gas Town](https://githu
                   v                     v
           +---------------+    +----------------+
           |  FarmEngine   |    |  SQLite (Prisma)|
-          |  (@repo/core) |    |  farm.db        |
+          |  (@bot-ville/core) |    |  farm.db        |
           +---------------+    +----------------+
                                ^
                     GET /public/* |

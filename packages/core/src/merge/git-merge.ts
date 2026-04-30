@@ -5,7 +5,7 @@ import type {
   GitMergeRequestStatus,
   FarmEvent,
   RoleId,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 import type { EventBus } from "../event-bus.js";
 import { enforcePolicy } from "../policy-engine.js";
 

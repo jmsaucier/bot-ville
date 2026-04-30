@@ -1,5 +1,8 @@
 import { execFile } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import net from "node:net";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
@@ -13,7 +16,7 @@ import {
   AgentSpawner,
   WorktreeManager,
   GitMergeEngine,
-} from "@repo/core";
+} from "@bot-ville/core";
 import { PrismaAdapter } from "./persistence/prisma-adapter.js";
 import { registerApiRoutes } from "./routes/api.js";
 import { registerPublicRoutes } from "./routes/public.js";
@@ -128,9 +131,20 @@ async function detectRepoRoot(projectDir?: string | null): Promise<string | null
   }
 }
 
+/**
+ * Prisma SQLite URL is `file:../data/farm.db` (relative to `prisma/`).
+ * SQLite cannot create the DB file if `data/` is missing — error 14.
+ */
+function ensureSqliteDataDir(): void {
+  const backendRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+  mkdirSync(join(backendRoot, "data"), { recursive: true });
+}
+
 async function main() {
   // Reclaim the port if a previous instance didn't shut down cleanly
   await ensurePortFree(PORT);
+
+  ensureSqliteDataDir();
 
   // Initialize Prisma
   const prisma = new PrismaClient();

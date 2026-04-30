@@ -1,6 +1,6 @@
 /**
  * Low-level async helpers for reading / writing / listing / deleting
- * JSON files on disk.  Every other module in @repo/memory uses this
+ * JSON files on disk.  Every other module in @bot-ville/memory uses this
  * layer instead of touching `node:fs` directly.
  */
 

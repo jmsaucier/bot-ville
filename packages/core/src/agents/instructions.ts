@@ -6,7 +6,7 @@ import {
   type RoleId,
   type Task,
   type WorkOrder,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 import { getRole, type RoleDefinition } from "../policy-engine.js";
 
 export interface InstructionContext {

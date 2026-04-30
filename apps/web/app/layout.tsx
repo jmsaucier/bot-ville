@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { publicApi, type ProjectContext } from "./lib/api.js";
+import { publicApi, type ProjectContext } from "./lib/api";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";

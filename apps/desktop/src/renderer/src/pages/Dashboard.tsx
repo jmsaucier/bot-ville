@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../hooks/useApi.js";
 import { StatusBadge } from "../components/StatusBadge.js";
-import type { FarmEvent } from "@repo/shared";
+import type { FarmEvent } from "@bot-ville/shared";
 
 interface WsMessage {
   id: string;

@@ -5,7 +5,7 @@ import type {
   Decision,
   EventLog,
   Status,
-} from "@repo/shared";
+} from "@bot-ville/shared";
 import type { PersistenceAdapter, EventFilters } from "../persistence.js";
 
 /**

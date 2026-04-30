@@ -3,7 +3,7 @@ import { FarmEngine } from "../src/engine.js";
 import { EventBus } from "../src/event-bus.js";
 import { registerAllRoles } from "../src/roles/index.js";
 import { InMemoryAdapter } from "../src/testing/in-memory-adapter.js";
-import type { FarmEvent } from "@repo/shared";
+import type { FarmEvent } from "@bot-ville/shared";
 
 describe("Task Lifecycle", () => {
   let engine: FarmEngine;

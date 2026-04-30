@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@repo/ui",
-    "utils": "@repo/ui/lib/utils",
-    "ui": "@repo/ui",
-    "lib": "@repo/ui/lib",
-    "hooks": "@repo/ui/hooks"
+    "components": "@bot-ville/ui",
+    "utils": "@bot-ville/ui/lib/utils",
+    "ui": "@bot-ville/ui",
+    "lib": "@bot-ville/ui/lib",
+    "hooks": "@bot-ville/ui/hooks"
   },
   "menuColor": "default",
   "menuAccent": "subtle",
